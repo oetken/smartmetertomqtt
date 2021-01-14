@@ -9,10 +9,15 @@ MQTT is limited to non-SSL (you may easily adopt this...)
 Tested with:
 * iskra MT681 (electricity)
 * elster BK-G4 AT with M-Bus ACM Modul (gas)
+* Weidman IR Schreib/Lesekopf USB https://shop.weidmann-elektronik.de/index.php?page=product&info=24
+* No-name USB M-Bus Master device
 
 Tested on:
 * Debian Bullseye
 * Raspberry Pi OS (Debian 10.7 based)
+
+Goals:
+* simple and very few effort!
 
 Depends on:
 * https://github.com/dailab/libsml
@@ -71,8 +76,11 @@ sudo dpkg -i *.deb
 
 in smartmetertomqtt:
 ```
-sudo make install
 sudo systemctrl install smartmeter.service
 sudo systemctrl enable smartmeter.service
 sudo systemctrl start smartmeter.service
 ```
+
+
+
+Copyright 2021 - 2021, Andreas Oetken and the smartmetertomqtt contributors.
