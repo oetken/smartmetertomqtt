@@ -1,0 +1,51 @@
+/*
+    This file is part of SmartMeterToMqtt.
+
+    SmartMeterToMqtt is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    SmartMeterToMqtt is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with SmartMeterToMqtt.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#ifndef QSMARTMETERTOMQTT_QSMARTMETERTOMQTT_HPP
+#define QSMARTMETERTOMQTT_QSMARTMETERTOMQTT_HPP
+
+#include <QtMqtt/QtMqtt>
+#include <QtCore/QDateTime>
+#include <QtMqtt/QMqttClient>
+#include <QSettings>
+#include <mbus/mbus.h>
+#include "IMessageSource.hpp"
+
+class SmartMeterToMqtt : public QObject{
+    Q_OBJECT
+public:
+    SmartMeterToMqtt();
+    explicit SmartMeterToMqtt(const QString &settingsFileName);
+    bool addMessageSource(IMessageSource * messageSource);
+    bool readSettings();
+    bool setup();
+    bool setupClient(QString hostname, uint16_t port, QString user, QString password);
+    bool publishMqttMessage(QString topic, QVariant message);
+    bool getMessageSources();
+private:
+    QSettings m_settings;
+    QMqttClient * m_client{};
+    QTimer m_timer;
+    QTimer m_keepAliveTimer;
+protected slots:
+    void updateLogStateChange(QMqttClient::ClientState state);
+    void brokerDisconnected();
+    void timerTimedout();
+    void messageReceived(QString topic, QVariant message);
+};
+
+
+#endif //QSMARTMETERTOMQTT_QSMARTMETERTOMQTT_HPP

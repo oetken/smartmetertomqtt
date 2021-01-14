@@ -1,0 +1,16 @@
+[General]
+hostname=192.168.178.60
+password=Password!
+port=1883
+user=pi
+[MessageSources]
+1\type=MbusSerial
+1\topic=smartmeter/gaszähler
+1\device=/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_D309TP6X-if00-port0
+1\addresses=0
+1\baudrate=2400
+2\type=Sml
+2\topic=smartmeter/stromzähler
+2\device=/dev/USB0
+2\baudrate=9600
+size=2
