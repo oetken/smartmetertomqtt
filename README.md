@@ -1,8 +1,10 @@
 # Details
 
 This tool reads data from Sml (Smart Message Language) devices or M-Bus devices and publishes the data via MQTT.
+
 Sml support is currently limited to reading.
-MQTT is limited to 
+
+MQTT is limited to non-SSL (you may easily adopt this...)
 
 Tested with:
 * iskra MT681 (electricity)
@@ -20,7 +22,7 @@ Depends on:
 # Prerequisits
 
 Libmbus Libsml and QtMQTT:
-
+```
 cd WHATEVERWORKSPACEYOUWANT
 sudo apt install -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev
 git clone https://github.com/rscada/libmbus
@@ -43,9 +45,12 @@ git checkout v5.11.3
 qmake
 make
 sudo make install
+```
+
 
 # Installation
 
+```
 git clone https://gitlab.com/smart-home-tools/smartmetertomqtt.git
 cd smartmetertomqtt
 mkdir build
@@ -53,6 +58,7 @@ cd build
 cmake ..
 cpack
 sudo dpkg -i *.deb
+```
 
 # Configuration
 
@@ -64,7 +70,9 @@ sudo dpkg -i *.deb
 # Installation as service
 
 in smartmetertomqtt:
+```
 sudo make install
 sudo systemctrl install smartmeter.service
 sudo systemctrl enable smartmeter.service
 sudo systemctrl start smartmeter.service
+```
