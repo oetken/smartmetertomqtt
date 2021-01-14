@@ -51,7 +51,7 @@ target_include_directories(SmartMeterToMqtt PUBLIC "${PROJECT_SOURCE_DIR}/inc")
 TARGET_LINK_LIBRARIES(SmartMeterToMqtt ${EXTRA_LIBS} Qt5::XmlPatterns Qt5::SerialPort Qt5::Mqtt Qt5::Sql Qt5::Network libmbus.so libsml.so Qt5::Xml uuid)
 
 install(TARGETS SmartMeterToMqtt 
-        RUNTIME DESTINATION /usr/local/bin
+        RUNTIME DESTINATION /usr/local/bin/
 )
 
 install(FILES ${PROJECT_SOURCE_DIR}/etc/smartmeter.service
@@ -59,6 +59,10 @@ install(FILES ${PROJECT_SOURCE_DIR}/etc/smartmeter.service
 )
 
 install(FILES ${PROJECT_SOURCE_DIR}/etc/smartmeter.ini
-        DESTINATION /etc/
+        DESTINATION /etc
 )
 
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Enno") #required
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${PROJECT_SOURCE_DIR}/etc/conffiles") 
+INCLUDE(CPack)

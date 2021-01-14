@@ -51,7 +51,8 @@ cd smartmetertomqtt
 mkdir build
 cd build
 cmake ..
-make
+cpack
+sudo dpkg -i *.deb
 
 # Configuration
 

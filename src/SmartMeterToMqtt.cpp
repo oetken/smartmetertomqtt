@@ -81,17 +81,32 @@ bool SmartMeterToMqtt::getMessageSources()
     return true;
 }
 
-bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user, QString password) {
+bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user, QString password, uint32_t keepAliveTime) {
+    // Setup MQTT client
     m_client = new QMqttClient(this);
     m_client->setHostname(hostname);
     m_client->setPort(port);
     m_client->setUsername(user);
-    //m_client->setAutoKeepAlive(true);
-    m_client->setKeepAlive(10);
     m_client->setPassword(password);
-    m_keepAliveTimer.setInterval(m_client->keepAlive() * 5 * 1000);
+
+    // Setup keep alive
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    m_client->setAutoKeepAlive(true);
+    m_client->setKeepAlive(keepAliveTime);
+#else
+    m_keepAliveSendTimer.setInterval((keepAliveTime);
+    connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
+        // Manual ping request if old version of QtMQTT
+        m_client->requestPing();
+    });
+    m_keepAliveSendTimer.start();
+#endif
+    // Keep alive timeout
+    m_keepAliveTimer.setInterval(keepAliveTime * 3 * 1000);
     connect(&m_keepAliveTimer, &QTimer::timeout, [this](){
-       m_client->connectToHost();
+        // Keep alive timer is only timedout if no ping reponse received from server
+        // Try to reconnect.
+        m_client->connectToHost();
     });
     connect(m_client, &QMqttClient::stateChanged, this, &SmartMeterToMqtt::updateLogStateChange);
     connect(m_client, &QMqttClient::disconnected, this, &SmartMeterToMqtt::brokerDisconnected);
@@ -100,7 +115,11 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
                                 + QLatin1String(" PingResponse")
                                 + QLatin1Char('\n');
         qDebug() << content;
+        // Restart keep alive timer
+        m_keepAliveTimer.start();
     });
+    // Not used but we can just print it in case anyone wants to test stuff
+    // Might be used to setup refresh rate, etc.
     connect(m_client, &QMqttClient::messageReceived, this, [this](const QByteArray &message, const QMqttTopicName &topic) {
         const QString content = QDateTime::currentDateTime().toString()
                                 + QLatin1String(" Received Topic: ")
@@ -109,8 +128,9 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
                                 + message
                                 + QLatin1Char('\n');
         qDebug() << content;
-        m_keepAliveTimer.start();
     });
+
+    // connect to host
     m_client->connectToHost();
     m_keepAliveTimer.start();
     return true;
@@ -193,6 +213,3 @@ bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
 void SmartMeterToMqtt::messageReceived(QString topic, QVariant message) {
     publishMqttMessage(topic, message);
 }
-
-
-

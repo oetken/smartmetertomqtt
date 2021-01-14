@@ -32,13 +32,14 @@ public:
     bool addMessageSource(IMessageSource * messageSource);
     bool readSettings();
     bool setup();
-    bool setupClient(QString hostname, uint16_t port, QString user, QString password);
+    bool setupClient(QString hostname, uint16_t port, QString user, QString password, uint32_t keepAliveTime = 10);
     bool publishMqttMessage(QString topic, QVariant message);
     bool getMessageSources();
 private:
     QSettings m_settings;
     QMqttClient * m_client{};
     QTimer m_timer;
+    QTimer m_keepAliveSendTimer;
     QTimer m_keepAliveTimer;
 protected slots:
     void updateLogStateChange(QMqttClient::ClientState state);
