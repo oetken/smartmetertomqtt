@@ -1,3 +1,5 @@
+#Copyright 2021 - 2021, Andreas Oetken and the smartmetertomqtt contributors.
+#
 #This file is part of SmartMeterToMqtt.
 #
 #SmartMeterToMqtt is free software: you can redistribute it and/or modify

@@ -46,7 +46,8 @@ cd ..
 dpkg -i *.deb
 
 cd qtmqtt 
-git checkout v5.11.3
+git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
+#if no suitable version is found check tags and pick a good one
 qmake
 make
 sudo make install

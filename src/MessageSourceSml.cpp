@@ -1,4 +1,5 @@
-/*
+/*  Copyright 2021 - 2021, Andreas Oetken and the smartmetertomqtt contributors.
+
     This file is part of SmartMeterToMqtt.
 
     SmartMeterToMqtt is free software: you can redistribute it and/or modify
@@ -75,10 +76,6 @@ void MessageSourceSml::handleReadReady()
                         << "." << entry->obj_name->str[4] << "*" << entry->obj_name->str[5];
                       emit messageReceived(string, value);
                       qDebug() << string << value;				 
-                      printf("%d-%d:%d.%d.%d*%d#%.3f#\n",
-                      entry->obj_name->str[0], entry->obj_name->str[1],
-                      entry->obj_name->str[2], entry->obj_name->str[3],
-                      entry->obj_name->str[4], entry->obj_name->str[5], value);
                    }
                 }
             }
