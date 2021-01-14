@@ -15,6 +15,7 @@ Tested with:
 Tested on:
 * Debian Bullseye
 * Raspberry Pi OS (Debian 10.7 based)
+* Raspberry Pi Zero W / Pi 3b
 
 Goals:
 * simple and very few effort!
