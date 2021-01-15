@@ -36,17 +36,23 @@ int main(int argc, char* argv[])
         QString settingsPath = parser.value(targetDirectoryOption);
         SmartMeterToMqtt qSmartMeterToMqtt(settingsPath);
         success = qSmartMeterToMqtt.setup();
+        if(!success) {
+            qCritical() << "Failed to setup!";
+            return -1;
+        }
+        app.exec();
     }
     else
     {
         SmartMeterToMqtt qSmartMeterToMqtt;
         success = qSmartMeterToMqtt.setup();
+        if(!success) {
+            qCritical() << "Failed to setup!";
+            return -1;
+        }
+        app.exec();
     }
-    if(!success) {
-        qCritical() << "Failed to setup!";
-        return -1;
-    }
-    app.exec();
+
     return 0;
 }
 

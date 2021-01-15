@@ -3,6 +3,7 @@ hostname=192.168.178.60
 password=Password!
 port=1883
 user=pi
+clientId=Gas&Powermeter
 [MessageSources]
 1\type=MbusSerial
 1\topic=smartmeter/gaszähler

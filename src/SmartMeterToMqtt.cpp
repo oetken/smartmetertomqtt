@@ -33,7 +33,8 @@ bool SmartMeterToMqtt::setup() {
             m_settings.value("hostname").toString(),
             m_settings.value("port").toString().toInt(),
             m_settings.value("user").toString(),
-            m_settings.value("password").toString()
+            m_settings.value("password").toString(),
+            m_settings.value("clientId").toString()
     )){
         qCritical() << "Failed to setup MQTT client!";
         return false;
@@ -41,7 +42,7 @@ bool SmartMeterToMqtt::setup() {
     if(!getMessageSources())
     {
         qCritical() << "Failed to setup MessageSources!";
-        return false;
+        //return false;
     }
     return true;
 }
@@ -82,18 +83,18 @@ bool SmartMeterToMqtt::getMessageSources()
     return true;
 }
 
-bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user, QString password, uint32_t keepAliveTime) {
+bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user, QString password, QString clientId, uint32_t keepAliveTime) {
     // Setup MQTT client
     m_client = new QMqttClient(this);
     m_client->setHostname(hostname);
     m_client->setPort(port);
     m_client->setUsername(user);
     m_client->setPassword(password);
-
+    m_client->setKeepAlive(keepAliveTime);
+    m_client->setClientId(clientId);
     // Setup keep alive
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     m_client->setAutoKeepAlive(true);
-    m_client->setKeepAlive(keepAliveTime);
 #else
     m_keepAliveSendTimer.setInterval(keepAliveTime * 1000);
     connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
@@ -133,7 +134,6 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     });
 
     // connect to host
-    m_client->setClientId("SmartMeterToMqtt");
     m_client->connectToHost();
     m_keepAliveTimer.start();
     return true;
@@ -167,6 +167,12 @@ bool SmartMeterToMqtt::readSettings() {
         qDebug() << m_settings.value("password");
     else {
         m_settings.setValue("password", "<PASSWORD>");
+        settingsOk = false;
+    }
+    if(m_settings.contains("clientId") && m_settings.value("clientId") != "<CLIENTID>")
+        qDebug() << m_settings.value("clientId");
+    else {
+        m_settings.setValue("clientId", "<CLIENTID>");
         settingsOk = false;
     }
 

@@ -33,7 +33,7 @@ public:
     bool addMessageSource(IMessageSource * messageSource);
     bool readSettings();
     bool setup();
-    bool setupClient(QString hostname, uint16_t port, QString user, QString password, uint32_t keepAliveTime = 10);
+    bool setupClient(QString hostname, uint16_t port, QString user, QString password, QString clientId = "", uint32_t keepAliveTime = 10);
     bool publishMqttMessage(QString topic, QVariant message);
     bool getMessageSources();
 private:
