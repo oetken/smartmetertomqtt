@@ -95,7 +95,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     m_client->setAutoKeepAlive(true);
     m_client->setKeepAlive(keepAliveTime);
 #else
-    m_keepAliveSendTimer.setInterval((keepAliveTime);
+    m_keepAliveSendTimer.setInterval(keepAliveTime);
     connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
         // Manual ping request if old version of QtMQTT
         m_client->requestPing();
