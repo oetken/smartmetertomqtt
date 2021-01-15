@@ -43,7 +43,7 @@ void MessageSourceSml::handleReadReady()
         index = matcher.indexIn(readData_, sizeof(startPattern_));
         if(index >= 0)
         {
-	    qDebug() << "Found end pattern";
+    	    qDebug() << "Found end pattern";
             sml_file *file = sml_file_parse((unsigned char*)(readData_.constData()) + sizeof(startPattern_), index - sizeof(startPattern_));
             int i = 0;
             double value;
@@ -79,7 +79,7 @@ void MessageSourceSml::handleReadReady()
                    }
                 }
             }
-            readData_.clear();
+            readData_.remove(0, index + sizeof(endPattern_));
         }
     }
     else

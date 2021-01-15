@@ -95,10 +95,11 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     m_client->setAutoKeepAlive(true);
     m_client->setKeepAlive(keepAliveTime);
 #else
-    m_keepAliveSendTimer.setInterval(keepAliveTime);
+    m_keepAliveSendTimer.setInterval(keepAliveTime * 1000);
     connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
         // Manual ping request if old version of QtMQTT
-        m_client->requestPing();
+        if(m_client->state() == QMqttClient::Connected)
+            m_client->requestPing();
     });
     m_keepAliveSendTimer.start();
 #endif
@@ -132,6 +133,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     });
 
     // connect to host
+    m_client->setClientId("SmartMeterToMqtt");
     m_client->connectToHost();
     m_keepAliveTimer.start();
     return true;
