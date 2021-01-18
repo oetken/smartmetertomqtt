@@ -5,7 +5,7 @@
 #include <QJsonArray>
 #include <QFile>
 
-SmartMeterSettings::SmartMeterSettings()
+SmartMeterSettings::SmartMeterSettings(QObject * parent) : QObject(parent)
 {
 }
 
@@ -16,13 +16,17 @@ bool SmartMeterSettings::open(QString filename)
         return false;
     auto data = file.readAll();
     file.close();
-    m_doc = QJsonDocument::fromJson(data);
-    qDebug() << m_doc["MQTT"]["User"].toString();
-    qDebug() << m_doc["MQTT"]["Password"].toString();
-    qDebug() << (*this)["MQTT"]["Password"].toString();
+    QJsonParseError error{};
+    m_doc = QJsonDocument::fromJson(data, &error);
+    if(error.error)
+    {
+        qCritical() << "Failed to parse Json file:" << error.errorString();
+        return false;
+    }
+    return true;
 }
 
-const QJsonValue SmartMeterSettings::operator[](QString name)
+QJsonValue SmartMeterSettings::operator[](QString name)
 {
     return m_doc[name];
 }

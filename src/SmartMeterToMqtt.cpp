@@ -19,28 +19,61 @@
 #include "MessageSourceSml.hpp"
 #include "MessageSourceMbusSerial.hpp"
 #include <QDebug>
+#include <IMessageFilter.hpp>
+#include <MessageFilterMean.hpp>
+#include <MessageFilterSkip.hpp>
 
-SmartMeterToMqtt::SmartMeterToMqtt() : m_settings("SmartHomeTools", "SmartMeterToMqtt", this) {
+SmartMeterToMqtt::SmartMeterToMqtt() : m_settings(this) {
 }
 
-SmartMeterToMqtt::SmartMeterToMqtt(const QString &settingsFileName)  : m_settings(settingsFileName, QSettings::Format::IniFormat, this) {
+SmartMeterToMqtt::SmartMeterToMqtt(const QString &settingsFileName) : m_settings(this), m_filename(settingsFileName) {
 }
 
 bool SmartMeterToMqtt::setup() {
     m_timer.setInterval(1000);
     connect(&m_timer, &QTimer::timeout, this, &SmartMeterToMqtt::timerTimedout);
     m_timer.start();
-    if(!readSettings())
+    if(!m_settings.open(m_filename))
     {
-        qCritical() << "Failed to read settings!";
+        qCritical() << "Failed to open settings.";
+        return false;
+    }
+    auto hostname = m_settings["MQTT"]["hostname"];
+    if(hostname.isNull())
+    {
+        qCritical() << "Hostname must be supplied!";
+        return false;
+    }
+    auto port = m_settings["MQTT"]["port"];
+    if(port.isNull())
+    {
+        qCritical() << "Port must be supplied!";
+        return false;
+    }
+    auto user = m_settings["MQTT"]["user"];
+    if(user.isNull())
+    {
+        qCritical() << "User must be supplied!";
+        return false;
+    }
+    auto password = m_settings["MQTT"]["password"];
+    if(password.isNull())
+    {
+        qCritical() << "Password must be supplied!";
+        return false;
+    }
+    auto clientid = m_settings["MQTT"]["clientid"];
+    if(clientid.isNull())
+    {
+        qCritical() << "ClientId must be supplied!";
         return false;
     }
     if(!setupClient(
-            m_settings.value("hostname").toString(),
-            m_settings.value("port").toString().toInt(),
-            m_settings.value("user").toString(),
-            m_settings.value("password").toString(),
-            m_settings.value("clientId").toString()
+            hostname.toString(),
+            port.toInt(),
+            user.toString(),
+            password.toString(),
+            clientid.toString()
     )){
         qCritical() << "Failed to setup MQTT client!";
         return false;
@@ -48,43 +81,98 @@ bool SmartMeterToMqtt::setup() {
     if(!getMessageSources())
     {
         qCritical() << "Failed to setup MessageSources!";
-        //return false;
+        return false;
     }
     return true;
 }
 
 bool SmartMeterToMqtt::getMessageSources()
 {
-    auto size = m_settings.beginReadArray("MessageSources");
-    for (int i = 0; i < size; ++i) {
-        m_settings.setArrayIndex(i);
-        auto type = m_settings.value("type").toString();
-        auto topic = m_settings.value("topic").toString();
-        auto device = m_settings.value("device").toString();
-        auto baudrate = m_settings.value("baudrate").toInt();
-        if(type == "MbusSerial")
+    auto messageSources = m_settings["MessageSources"].toArray();
+    foreach (const auto & messageSource, messageSources) {
+        IMessageSource * iMessageSource = nullptr;
+        auto type = messageSource["type"];
+        auto topic = messageSource["topic"];
+        auto device = messageSource["device"];
+        auto baudrate = messageSource["baudrate"];
+        if(type.isNull() || topic.isNull() || device.isNull() || baudrate.isNull())
         {
-            auto addressesString = m_settings.value("addresses").toString();
+            qCritical() << "Settings: Message source is corrupt!";
+            return false;
+        }
+        if(type.toString() == "MbusSerial")
+        {
+            auto addressesString = messageSource["addresses"];
+            if(addressesString.isNull())
+            {
+                qCritical() << "Settings: Message source is corrupt!";
+                return false;
+            }
             QStringList addresses;
-            for (auto & address : addressesString.trimmed().split(','))
+            for (auto & address : addressesString.toString().trimmed().split(','))
             {
                 addresses.append(address.trimmed());
             }
-            auto ms = new MessageSourceMbusSerial(topic, device, addresses, baudrate);
+            auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt());
             ms->setup();
             addMessageSource(ms);
+            iMessageSource = ms;
         }
         else if(type == "Sml")
         {
-            auto ms = new MessageSourceSml(topic, device, baudrate);
+            auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt());
+            ms->setup();
             addMessageSource(ms);
+            iMessageSource = ms;
+        }
+        else
+        {
+            qCritical() << "Settings: unknown message source" << type;
+            return false;
+        }
+        auto messageFilters = messageSource["MessageFilters"].toArray();
+        if(!getFilters(messageFilters, iMessageSource))
+        {
+            return false;
         }
     }
-    m_settings.endArray();
-    if(size == 0)
+    if(messageSources.isEmpty())
     {
-        qCritical() << "No message sources defined!";
+        qCritical() << "Settings: No message sources defined!";
         return false;
+    }
+    return true;
+}
+
+bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *messageSource) {
+    foreach (const auto &messageFilter, messageFilters) {
+        auto type = messageFilter["type"];
+        if (type.isNull()) {
+            qCritical() << "Settings: Message Filter is corrupt!";
+            return false;
+        }
+        auto datapoint = messageFilter["datapoint"];
+        if (datapoint.isNull()) {
+            qCritical() << "Settings: Message Filter is corrupt!";
+            return false;
+        }
+        if (type.toString() == "Mean") {
+            auto windowSize = messageFilter["windowSize"];
+            if (windowSize.isNull()) {
+                qCritical() << "Settings: Message Filter is corrupt!";
+                return false;
+            }
+            auto filter = new MessageFilterMean(windowSize.toInt());
+            messageSource->addFilter(datapoint.toString(), filter);
+        } else if (type.toString() == "Skip") {
+            auto skipCount = messageFilter["skipCount"];
+            if (skipCount.isNull()) {
+                qCritical() << "Settings: Message Filter is corrupt!";
+                return false;
+            }
+            auto filter = new MessageFilterSkip(skipCount.toInt());
+            messageSource->addFilter(datapoint.toString(), filter);
+        }
     }
     return true;
 }
@@ -144,51 +232,6 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     m_keepAliveTimer.start();
     return true;
 }
-
-bool SmartMeterToMqtt::readSettings() {
-    m_settings.setIniCodec("UTF-8");
-    qDebug() << m_settings.fileName();
-    bool settingsOk = true;
-    if(m_settings.contains("hostname") && m_settings.value("hostname") != "<HOSTNAME>")
-        qDebug() << m_settings.value("hostname");
-    else {
-        m_settings.setValue("hostname", "<HOSTNAME>");
-        settingsOk = false;
-    }
-    if(m_settings.contains("port") && m_settings.value("port") != "<PORT>")
-        qDebug() << m_settings.value("port");
-    else {
-        m_settings.setValue("port", "<PORT>");
-        settingsOk = false;
-    }
-
-    if(m_settings.contains("user") && m_settings.value("user") != "<USER>")
-        qDebug() << m_settings.value("user");
-    else {
-        m_settings.setValue("user", "<USER>");
-        settingsOk = false;
-    }
-
-    if(m_settings.contains("password") && m_settings.value("password") != "<PASSWORD>")
-        qDebug() << m_settings.value("password");
-    else {
-        m_settings.setValue("password", "<PASSWORD>");
-        settingsOk = false;
-    }
-    if(m_settings.contains("clientId") && m_settings.value("clientId") != "<CLIENTID>")
-        qDebug() << m_settings.value("clientId");
-    else {
-        m_settings.setValue("clientId", "<CLIENTID>");
-        settingsOk = false;
-    }
-
-    if(!settingsOk)
-    {
-        qCritical() << "Fatal: Settings file is not setupClient properly. Open" << m_settings.fileName() << "and put correct settings.";
-    }
-    return settingsOk;
-}
-
 
 
 bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {

@@ -7,9 +7,9 @@ class SmartMeterSettings : public QObject
 {
     Q_OBJECT
 public:
-    SmartMeterSettings();
+    SmartMeterSettings(QObject * parent);
     bool open(QString filename);
-    const QJsonValue operator[](QString name);
+    QJsonValue operator[](QString name);
 private:
     QJsonDocument m_doc;
 };

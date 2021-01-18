@@ -219,12 +219,24 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
     query.bindVariable("myDocument", &buffer);
     query.setQuery("doc($myDocument)//MBusData/DataRecord/Function/string()");
     query.evaluateTo(&names);
-    int x = 0;
     foreach (const QString &name, names) {
         query.setQuery("doc($myDocument)//MBusData/DataRecord[./Function='"+name+"']/Value/string()");
         query.evaluateTo(&values);
-        emit messageReceived(m_topic + "/" + name, values[x++]);
-
+        auto value = values[0];
+        if(m_filters.contains(name))
+        {
+            QVariant variant = m_filters[name]->filter(value);
+            if(!variant.isNull())
+            {
+                emit messageReceived(m_topic + "/" + name, variant);
+                qDebug() << m_topic + "/" + name << variant;
+            }
+        }
+        else
+        {
+            emit messageReceived(m_topic + "/" + name, value);
+            qDebug() << m_topic + "/" + name << value;
+        }
     }
 }
 

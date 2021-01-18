@@ -27,7 +27,7 @@ class MessageSourceSml : public IMessageSource
     Q_OBJECT
 public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
-
+    bool setup();
 private slots:
     void handleReadReady();
 
@@ -35,6 +35,8 @@ private:
     QByteArray readData_;
     QSerialPort serialPort_;
     QString topicBase_;
+    QString device_;
+    uint32_t baudrate_;
     const char startPattern_[8] = {0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01};
     const char endPattern_[5] = {0x1b, 0x1b, 0x1b, 0x1b, 0x1a};
 

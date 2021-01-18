@@ -21,13 +21,21 @@
 #include <QTextStream>
 #include <QDebug>
 
-MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase)
+MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate)
 {
-    serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate));
-    serialPort_.setPortName(device);
-    serialPort_.open(QIODevice::ReadOnly);
+}
+
+bool MessageSourceSml::setup() {
+    serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate_));
+    serialPort_.setPortName(device_);
+    if(!serialPort_.open(QIODevice::ReadOnly)) {
+        qCritical() << "Faield to open serial port" << serialPort_.errorString();
+        return false;
+    }
+
     connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
 }
+
 
 void MessageSourceSml::handleReadReady()
 {
@@ -71,11 +79,23 @@ void MessageSourceSml::handleReadReady()
                          value *= 0.0001;
                       QString string;
                       QTextStream s(&string);
-                      s << topicBase_ << "/" << entry->obj_name->str[0] << "-" << entry->obj_name->str[1]
+                      s << entry->obj_name->str[0] << "-" << entry->obj_name->str[1]
                         << ":" << entry->obj_name->str[2] << "." << entry->obj_name->str[3]
                         << "." << entry->obj_name->str[4] << "*" << entry->obj_name->str[5];
-                      emit messageReceived(string, value);
-                      qDebug() << string << value;				 
+                      if(m_filters.contains(string))
+                      {
+                          QVariant variant = m_filters[string]->filter(value);
+                          if(!variant.isNull())
+                          {
+                              emit messageReceived(topicBase_ + "/" + string, variant);
+                              qDebug() << string << variant;
+                          }
+                      }
+                      else
+                      {
+                          emit messageReceived(topicBase_ + "/" + string, value);
+                          qDebug() << string << value;
+                      }
                    }
                 }
             }
@@ -87,3 +107,4 @@ void MessageSourceSml::handleReadReady()
         readData_.remove(0, readData_.length() - sizeof(startPattern_));
     }
 }
+

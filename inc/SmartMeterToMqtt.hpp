@@ -24,20 +24,24 @@
 #include <QSettings>
 #include <mbus/mbus.h>
 #include "IMessageSource.hpp"
+#include "SmartMeterSettings.hpp"
+#include "IMessageFilter.hpp"
 
 class SmartMeterToMqtt : public QObject{
     Q_OBJECT
 public:
-    SmartMeterToMqtt();
+    explicit SmartMeterToMqtt();
     explicit SmartMeterToMqtt(const QString &settingsFileName);
     bool addMessageSource(IMessageSource * messageSource);
-    bool readSettings();
     bool setup();
     bool setupClient(QString hostname, uint16_t port, QString user, QString password, QString clientId = "", uint32_t keepAliveTime = 10);
     bool publishMqttMessage(QString topic, QVariant message);
     bool getMessageSources();
 private:
-    QSettings m_settings;
+    bool getFilters(QJsonArray &messageFilters, IMessageSource *filters);
+
+    SmartMeterSettings m_settings;
+    QString m_filename = "/home/z001131e/.config/SmartHomeTools/SmartMeterToMqtt.json";
     QMqttClient * m_client{};
     QTimer m_timer;
     QTimer m_keepAliveSendTimer;

@@ -32,9 +32,6 @@ int main(int argc, char* argv[])
     parser.process(app);
     bool settingsPathExists = parser.isSet(targetDirectoryOption);
     bool success {};
-    SmartMeterSettings x;
-    x.open("/home/enno/workspace/smartmetertomqtt/test.json");
-
     if(settingsPathExists)
     {
         QString settingsPath = parser.value(targetDirectoryOption);

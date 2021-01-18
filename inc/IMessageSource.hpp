@@ -20,11 +20,21 @@
 
 #include <QObject>
 #include <QVariant>
+#include "IMessageFilter.hpp"
+#include <QHash>
 
 class IMessageSource : public QObject{
     Q_OBJECT
+public:
+    virtual void addFilter(QString datapoint, IMessageFilter * filter)
+    {
+        m_filters[datapoint] = filter;
+    }
 signals:
     void messageReceived(QString topic, QVariant value);
+
+protected:
+    QHash<QString, IMessageFilter *> m_filters;
 };
 
 
