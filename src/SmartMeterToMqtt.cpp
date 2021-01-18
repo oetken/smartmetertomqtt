@@ -20,6 +20,12 @@
 #include "MessageSourceMbusSerial.hpp"
 #include <QDebug>
 
+SmartMeterToMqtt::SmartMeterToMqtt() : m_settings("SmartHomeTools", "SmartMeterToMqtt", this) {
+}
+
+SmartMeterToMqtt::SmartMeterToMqtt(const QString &settingsFileName)  : m_settings(settingsFileName, QSettings::Format::IniFormat, this) {
+}
+
 bool SmartMeterToMqtt::setup() {
     m_timer.setInterval(1000);
     connect(&m_timer, &QTimer::timeout, this, &SmartMeterToMqtt::timerTimedout);
@@ -183,11 +189,7 @@ bool SmartMeterToMqtt::readSettings() {
     return settingsOk;
 }
 
-SmartMeterToMqtt::SmartMeterToMqtt() : m_settings("SmartHomeTools", "SmartMeterToMqtt", this) {
-}
 
-SmartMeterToMqtt::SmartMeterToMqtt(const QString &settingsFileName)  : m_settings(settingsFileName, QSettings::Format::IniFormat, this) {
-}
 
 bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
     QString messageString = message.toString();
