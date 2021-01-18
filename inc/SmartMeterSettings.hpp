@@ -2,6 +2,7 @@
 #define SMARTMETERSETTINGS_HPP
 
 #include <QJsonDocument>
+#include <QDebug>
 
 class SmartMeterSettings : public QObject
 {

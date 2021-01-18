@@ -69,10 +69,11 @@ sudo dpkg -i *.deb
 
 # Configuration
 
-* when run as user the config is stored in ~/.config/SmartHomeTools/SmartMeterToMqtt.conf
+* when run as user the config is stored in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
 * when run as service the config is stored in /etc/smartmeter.ini
+* you can pass the config file location via "-f"
 
--> see etc/SmartMeterToMqtt.conf_example
+-> see etc/SmartMeterToMqtt.json_example
 
 # Installation as service
 

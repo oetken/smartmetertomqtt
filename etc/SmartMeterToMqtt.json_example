@@ -1,0 +1,41 @@
+{
+    "MQTT": {
+        "clientId": "SmartMeterPi",
+        "hostname": "Ip",
+        "password": "Password",
+        "port": 1883,
+        "user": "User"
+    },
+    "MessageSources":[
+        {
+            "type": "MbusSerial",
+            "topic": "smartmeter/gaszähler",
+            "device": "/dev/serial/by-id/usb-Silicon_Labs_solvimus_MBUS-PU3_with_SiLabs_CP2104_9629db019daa634f878d21bd7f8d5c90-if00-port0",
+            "addresses": "0",
+            "baudrate": 2400,
+            "pollIntervalSec": 60,
+            "MessageFilters": [
+            ]
+        },
+        {
+            "type": "Sml",
+            "topic": "smartmeter/stromzähler",
+            "device": "/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_D309TP6X-if00-port0",
+            "baudrate": 9600,
+            "MessageFilters": [
+                {
+                    "comment": "This is the power value of my smart meter",
+                    "type": "mean",
+                    "datapoint": "1-0:16.7.0*255",
+                    "windowSize": 15
+                },
+                {
+                    "comment": "This is the energy value of my smart meter",
+                    "type": "skip",
+                    "datapoint": "1-0:1.8.0*255",
+                    "skipCount": 60
+                }   
+            ]            
+        }
+    ]
+}

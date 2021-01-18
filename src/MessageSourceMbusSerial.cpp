@@ -66,8 +66,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "mbus/mbus.h"
 #include <QtXmlPatterns/QXmlQuery>
 
-MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate) : m_topic(topic), m_device(device), m_addresses(addresses), m_baudrate(baudrate){
-    m_timer.setInterval(1000);
+MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec) : m_topic(topic), m_device(device), m_addresses(addresses), m_baudrate(baudrate), m_pollIntervalSec(pollIntervalSec){
+    m_timer.setInterval(m_pollIntervalSec * 1000);
     connect(&m_timer, &QTimer::timeout, this, &MessageSourceMbusSerial::readData);
     m_timer.start();
 }

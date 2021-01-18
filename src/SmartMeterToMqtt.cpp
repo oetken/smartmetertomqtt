@@ -108,12 +108,18 @@ bool SmartMeterToMqtt::getMessageSources()
                 qCritical() << "Settings: Message source is corrupt!";
                 return false;
             }
+            auto pollIntervalSec = messageSource["pollIntervalSec"];
+            if(pollIntervalSec.isNull())
+            {
+                qCritical() << "Settings: Message source is corrupt!";
+                return false;
+            }
             QStringList addresses;
             for (auto & address : addressesString.toString().trimmed().split(','))
             {
                 addresses.append(address.trimmed());
             }
-            auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt());
+            auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt(), pollIntervalSec.toInt());
             ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
@@ -146,7 +152,7 @@ bool SmartMeterToMqtt::getMessageSources()
 
 bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *messageSource) {
     foreach (const auto &messageFilter, messageFilters) {
-        auto type = messageFilter["type"];
+            auto type = messageFilter["type"];
         if (type.isNull()) {
             qCritical() << "Settings: Message Filter is corrupt!";
             return false;
@@ -156,7 +162,8 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
             qCritical() << "Settings: Message Filter is corrupt!";
             return false;
         }
-        if (type.toString() == "Mean") {
+        qDebug() << type << datapoint;
+        if (type.toString().compare("Mean", Qt::CaseInsensitive) == 0) {
             auto windowSize = messageFilter["windowSize"];
             if (windowSize.isNull()) {
                 qCritical() << "Settings: Message Filter is corrupt!";
@@ -164,8 +171,9 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
             }
             auto filter = new MessageFilterMean(windowSize.toInt());
             messageSource->addFilter(datapoint.toString(), filter);
-        } else if (type.toString() == "Skip") {
+        } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {
             auto skipCount = messageFilter["skipCount"];
+            qDebug() << skipCount;
             if (skipCount.isNull()) {
                 qCritical() << "Settings: Message Filter is corrupt!";
                 return false;
@@ -173,6 +181,12 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
             auto filter = new MessageFilterSkip(skipCount.toInt());
             messageSource->addFilter(datapoint.toString(), filter);
         }
+        else
+        {
+            qCritical() << "Settings: Unknown Message Filter type:" << type.toString();
+            return false;
+        }
+
     }
     return true;
 }

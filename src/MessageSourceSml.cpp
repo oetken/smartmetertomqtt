@@ -34,6 +34,7 @@ bool MessageSourceSml::setup() {
     }
 
     connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+    return true;
 }
 
 
@@ -88,7 +89,7 @@ void MessageSourceSml::handleReadReady()
                           if(!variant.isNull())
                           {
                               emit messageReceived(topicBase_ + "/" + string, variant);
-                              qDebug() << string << variant;
+                              qDebug() << "filtered" << string << variant;
                           }
                       }
                       else

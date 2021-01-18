@@ -6,9 +6,7 @@
 
 QVariant MessageFilterMean::filter(QVariant value) {
     m_samples.push_back(value);
-    if(m_samples.size() > m_sampleCount)
-        m_samples.pop_front();
-    else
+    if(m_samples.size() != m_sampleCount)
         return QVariant();
 
     double mean;
@@ -17,7 +15,7 @@ QVariant MessageFilterMean::filter(QVariant value) {
         mean = mean + sample.toDouble();
     }
     mean /= m_sampleCount;
-
+    m_samples.clear();
     return QVariant(mean);
 }
 
