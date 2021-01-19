@@ -4,7 +4,7 @@ Documentation=https://gitlab.com/smart-home-tools/smartmetertomqtt
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/SmartMeterToMqtt -f /etc/smartmeter.ini
+ExecStart=SmartMeterToMqtt -f /etc/smartmeter.json
 #User=pi
 Restart=on-failure
 RestartSec=5
