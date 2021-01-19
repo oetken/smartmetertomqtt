@@ -63,27 +63,22 @@ cd smartmetertomqtt
 mkdir build
 cd build
 cmake ..
+# for Release mode use: cmake .. -DCMAKE_BUILD_TYPE=Release
 cpack
 sudo dpkg -i *.deb
 ```
 
 # Configuration
 
-* when run as user the config is stored in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
-* when run as service the config is stored in /etc/smartmeter.ini
+* when run as without argument the config is located in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
+* when run as service the config is located in /etc/smartmeter.json
 * you can pass the config file location via "-f"
 
--> see etc/SmartMeterToMqtt.json_example
+-> see [SmartMeterToMqtt.json_example](etc/SmartMeterToMqtt.json_example)
 
 # Installation as service
 
-in smartmetertomqtt:
-```
-sudo systemctrl install smartmeter.service
-sudo systemctrl enable smartmeter.service
-sudo systemctrl start smartmeter.service
-```
-
+Done by the debian package.
 
 
 Copyright 2021 - 2021, Andreas Oetken and the smartmetertomqtt contributors.
