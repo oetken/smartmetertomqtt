@@ -1,0 +1,20 @@
+#!/bin/bash
+
+install_dir=""
+if [[ ! -f ${install_dir}/etc/smartmeter.json ]] && [[ -f ${install_dir}/etc/smartmeter.json.default ]]; then
+    cp ${install_dir}/etc/smartmeter.json.default ${install_dir}/etc/smartmeter.json
+    chmod 644 ${install_dir}/etc/smartmeter.json
+else
+    echo "Skipping initialization of ${install_dir}/etc/smartmeter.json"
+fi
+
+if [[ ! -f ${install_dir}/etc/systemd/system/smartmeter.service ]] && [[ -f ${install_dir}/etc/systemd/system/smartmeter.service.default ]]; then
+    cp ${install_dir}/etc/systemd/system/smartmeter.service.default ${install_dir}/etc/systemd/system/smartmeter.service
+    chmod 644 ${install_dir}/etc/systemd/system/smartmeter.service
+    systemctl enable smartmeter.service
+else
+    echo "Skipping initialization of ${install_dir}/etc/systemd/system/smartmeter.service"
+fi
+systemctl start smartmeter.service
+echo "Starting smartmeter service"
+
