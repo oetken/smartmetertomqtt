@@ -28,15 +28,16 @@ jobs:
         # a GitHub package registry.
         githubToken: ${{ github.token }}
         
-        dockerRunArgs: |
-          --volume "${{github.workspace}}:/workspace"
-        
         # Pass some environment variables to the container
         env: | # YAML, but pipe character is necessary
-            USER: enno
-            LOGNAME: enno
+            USER: root
+            LOGNAME: root
         
         setup: cmake -E make_directory ${{github.workspace}}/build
+
+        dockerRunArgs: |
+          --volume "${{github.workspace}}:/workspace"
+          --user root
         
         install: |
                 apt-get update -q -y
