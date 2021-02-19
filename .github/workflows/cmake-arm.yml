@@ -36,7 +36,7 @@ jobs:
             USER: enno
             LOGNAME: enno
         
-        setup: cmake -E make_directory /workspace/build
+        setup: cmake -E make_directory ${{github.workspace}}/build
         
         install: |
                 apt-get update -q -y
