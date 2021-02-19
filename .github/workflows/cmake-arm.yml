@@ -28,7 +28,15 @@ jobs:
         # a GitHub package registry.
         githubToken: ${{ github.token }}
         
-        setup: cmake -E make_directory ${{github.workspace}}/build
+        dockerRunArgs: |
+          --volume "${{github.workspace}}:/workspace"
+        
+        # Pass some environment variables to the container
+        env: | # YAML, but pipe character is necessary
+            USER: enno
+            LOGNAME: enno
+        
+        setup: cmake -E make_directory /workspace/build
         
         install: |
                 apt-get update -q -y
@@ -36,6 +44,7 @@ jobs:
         
         # Set an output parameter `uname` for use in subsequent steps
         run: |
+           cd /workspace
            uname -a
            echo ::set-output name=uname::$(uname -a)    
            git clone https://github.com/qt/qtmqtt
