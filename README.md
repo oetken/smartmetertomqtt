@@ -21,7 +21,7 @@ Goals:
 * simple and very few effort!
 
 Depends on:
-* https://github.com/dailab/libsml
+* https://github.com/volkszaehler/libsml
 * https://github.com/rscada/libmbus
 * https://github.com/qt/qtmqtt
 
@@ -32,7 +32,7 @@ Libmbus Libsml and QtMQTT:
 cd WHATEVERWORKSPACEYOUWANT
 sudo apt install -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make
 git clone https://github.com/rscada/libmbus
-git clone https://github.com/dailab/libsml
+git clone https://github.com/volkszaehler/libsml
 git clone https://github.com/qt/qtmqtt
 
 cd libsml 
