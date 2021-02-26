@@ -25,7 +25,12 @@ Depends on:
 * https://github.com/rscada/libmbus
 * https://github.com/qt/qtmqtt
 
-# Prerequisits
+# Installation
+
+Check Releases for a link to amd64 Debian builds.
+Or build from source:
+
+## Prerequisits
 
 Libmbus Libsml and QtMQTT:
 ```
@@ -44,8 +49,6 @@ cd libmbus
 ./build-deb.sh
 cd ..
 
-dpkg -i *.deb
-
 cd qtmqtt
 QT_VERSION=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p');
 git checkout v$QT_VERSION;
@@ -55,7 +58,11 @@ cd qtmqtt-$QT_VERSION
 qmake
 dh_make -s -c gpl -e none@none.de --createorig -y
 dpkg-buildpackage -b --no-sign
+cd ..
 
+dpkg -i *.deb
+
+# alternative for mqtt:
 #git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
 #if no suitable version is found check tags and pick a good one
 #qmake
@@ -64,7 +71,7 @@ dpkg-buildpackage -b --no-sign
 ```
 
 
-# Installation
+## Compile
 
 ```
 git clone https://gitlab.com/smart-home-tools/smartmetertomqtt.git
