@@ -48,7 +48,7 @@ jobs:
     - name: Build LibSml
       shell: bash
       working-directory: ${{github.workspace}}
-      run: git clone https://github.com/dailab/libsml;
+      run: git clone https://github.com/volkszaehler/libsml;
            cd libsml;
            sed -i 's/.*\s-C\stest$//g' Makefile;
            sed -i 's/.*\s-C\sexamples$//g' Makefile;
