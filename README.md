@@ -27,7 +27,7 @@ Depends on:
 
 # Installation
 
-Check Releases for a link to amd64 Debian builds.
+Check [Releases](https://github.com/oetken/smartmetertomqtt/releases) for a link to amd64 Debian builds.
 Or build from source:
 
 ## Prerequisits
