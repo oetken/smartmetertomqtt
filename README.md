@@ -46,12 +46,21 @@ cd ..
 
 dpkg -i *.deb
 
-cd qtmqtt 
-git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
+cd qtmqtt
+QT_VERSION=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p');
+git checkout v$QT_VERSION;
 #if no suitable version is found check tags and pick a good one
+cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"
+cd qtmqtt-$QT_VERSION
 qmake
-make
-sudo make install
+dh_make -s -c gpl -e none@none.de --createorig -y
+dpkg-buildpackage -b --no-sign
+
+#git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
+#if no suitable version is found check tags and pick a good one
+#qmake
+#make
+#sudo make install
 ```
 
 
