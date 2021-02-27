@@ -86,9 +86,10 @@ sudo dpkg -i *.deb
 
 # Configuration
 
-* when run as without argument the config is located in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
+* when run as user without argument the config is located in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
 * when run as service the config is located in /etc/smartmeter.json
 * you can pass the config file location via "-f"
+* There are several configuration options like mean filtering or skipping of values. Check the example config.
 
 -> see [SmartMeterToMqtt.json_example](etc/SmartMeterToMqtt.json_example)
 
