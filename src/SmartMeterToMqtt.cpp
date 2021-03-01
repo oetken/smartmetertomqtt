@@ -169,8 +169,13 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
                 qCritical() << "Settings: Message Filter is corrupt!";
                 return false;
             }
-            auto filter = new MessageFilterMean(windowSize.toInt());
+            auto threshold = messageFilter["threshold"];
+            double threasholdValue = std::nan("");
+            if(!threshold.isNull() && !threshold.isUndefined())
+                threasholdValue = threshold.toDouble();
+            auto filter = new MessageFilterMean(windowSize.toInt(), threasholdValue);
             messageSource->addFilter(datapoint.toString(), filter);
+
         } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {
             auto skipCount = messageFilter["skipCount"];
             qDebug() << skipCount;

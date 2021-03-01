@@ -88,8 +88,18 @@ void MessageSourceSml::handleReadReady()
                           QVariant variant = m_filters[string]->filter(value);
                           if(!variant.isNull())
                           {
-                              emit messageReceived(topicBase_ + "/" + string, variant);
-                              qDebug() << "filtered" << string << variant;
+                              if(variant.canConvert<QVariantList>())
+                              {
+                                  for(QVariant element : variant.toList())
+                                  {
+                                      emit messageReceived(topicBase_ + "/" + string, element);
+                                      qDebug() << "filtered" << string << element;
+                                  }
+                              }
+                              else {
+                                  emit messageReceived(topicBase_ + "/" + string, variant);
+                                  qDebug() << "filtered" << string << variant;
+                              }
                           }
                       }
                       else
