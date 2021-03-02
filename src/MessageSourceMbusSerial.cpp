@@ -228,8 +228,18 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
             QVariant variant = m_filters[name]->filter(value);
             if(!variant.isNull())
             {
-                emit messageReceived(m_topic + "/" + name, variant);
-                qDebug() << m_topic + "/" + name << variant;
+                if(variant.canConvert<QVariantList>())
+                {
+                    for(QVariant element : variant.toList())
+                    {
+                        emit messageReceived(m_topic + "/" + name, element);
+                        qDebug() << "filtered" << name << element;
+                    }
+                }
+                else {
+                    emit messageReceived(m_topic + "/" + name, variant);
+                    qDebug() << "filtered" << name << variant;
+                }
             }
         }
         else
