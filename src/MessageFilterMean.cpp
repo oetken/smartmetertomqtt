@@ -28,6 +28,7 @@ QVariant MessageFilterMean::filter(QVariant value) {
         }
         else {
             QVariantList variantList;
+            m_samples.push_back(value)
             variantList.append(getMeanValue(true));
             variantList.append(value);
             retVal = variantList;
