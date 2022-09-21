@@ -212,7 +212,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     m_client->setClientId(clientId);
     // Setup keep alive
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-    m_client->setAutoKeepAlive(true);
+    //m_client->setAutoKeepAlive(true);
 #else
     m_keepAliveSendTimer.setInterval(keepAliveTime * 1000);
     connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
