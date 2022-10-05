@@ -41,7 +41,7 @@ jobs:
         
         install: |
                 apt-get update -q -y
-                apt-get install -q -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev dh-make libqt5serialport5-dev         
+                apt-get install -q -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev dh-make libqt5serialport5-dev sudo      
         
         # Set an output parameter `uname` for use in subsequent steps
         run: |
