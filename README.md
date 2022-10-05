@@ -21,18 +21,23 @@ Goals:
 * simple and very few effort!
 
 Depends on:
-* https://github.com/dailab/libsml
+* https://github.com/volkszaehler/libsml
 * https://github.com/rscada/libmbus
 * https://github.com/qt/qtmqtt
 
-# Prerequisits
+# Installation
+
+Check [Releases](https://github.com/oetken/smartmetertomqtt/releases) for a link to amd64 Debian builds.
+Or build from source:
+
+## Prerequisits
 
 Libmbus Libsml and QtMQTT:
 ```
 cd WHATEVERWORKSPACEYOUWANT
 sudo apt install -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make
 git clone https://github.com/rscada/libmbus
-git clone https://github.com/dailab/libsml
+git clone https://github.com/volkszaehler/libsml
 git clone https://github.com/qt/qtmqtt
 
 cd libsml 
@@ -44,18 +49,29 @@ cd libmbus
 ./build-deb.sh
 cd ..
 
+cd qtmqtt
+QT_VERSION=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p');
+git checkout v$QT_VERSION;
+#if no suitable version is found check tags and pick a good one
+cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"
+cd qtmqtt-$QT_VERSION
+qmake
+dh_make -s -c gpl -e none@none.de --createorig -y
+dpkg-buildpackage -b --no-sign
+cd ..
+
 dpkg -i *.deb
 
-cd qtmqtt 
-git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
+# alternative for mqtt:
+#git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
 #if no suitable version is found check tags and pick a good one
-qmake
-make
-sudo make install
+#qmake
+#make
+#sudo make install
 ```
 
 
-# Installation
+## Compile
 
 ```
 git clone https://gitlab.com/smart-home-tools/smartmetertomqtt.git
@@ -70,9 +86,10 @@ sudo dpkg -i *.deb
 
 # Configuration
 
-* when run as without argument the config is located in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
+* when run as user without argument the config is located in ~/.config/SmartHomeTools/SmartMeterToMqtt.json
 * when run as service the config is located in /etc/smartmeter.json
 * you can pass the config file location via "-f"
+* There are several configuration options like mean filtering or skipping of values. Check the example config.
 
 -> see [SmartMeterToMqtt.json_example](etc/SmartMeterToMqtt.json_example)
 

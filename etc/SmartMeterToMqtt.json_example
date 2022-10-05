@@ -28,6 +28,9 @@
                     "type": "mean",
                     "datapoint": "1-0:16.7.0*255",
                     "windowSize": 15
+                    "threshold": 150,
+                    "postThresholdIncreaseSampleCount": 4
+
                 },
                 {
                     "comment": "This is the energy value of my smart meter",

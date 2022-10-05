@@ -1,6 +1,8 @@
 #!/bin/bash
 
-echo "Stopping smartmeter service"
-systemctl stop smartmeter.service
-
+systemctl is-active --quiet smartmeter.service
+if [ $? == 0 ]; then
+    echo "Stopping smartmeter service"
+    systemctl stop smartmeter.service
+fi
 

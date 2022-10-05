@@ -169,8 +169,18 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
                 qCritical() << "Settings: Message Filter is corrupt!";
                 return false;
             }
-            auto filter = new MessageFilterMean(windowSize.toInt());
+            auto threshold = messageFilter["threshold"];
+            double threasholdValue = std::nan("");
+            if(!threshold.isNull() && !threshold.isUndefined())
+                threasholdValue = threshold.toDouble();
+            auto postThresholdIncreaseSampleCount = messageFilter["postThresholdIncreaseSampleCount"];
+            uint32_t postThresholdIncreaseSampleCountValue = 0;
+            if(!postThresholdIncreaseSampleCount.isNull() && !postThresholdIncreaseSampleCount.isUndefined())
+                postThresholdIncreaseSampleCountValue = postThresholdIncreaseSampleCount.toInt();
+            auto filter = new MessageFilterMean(windowSize.toInt(), threasholdValue,
+                                                postThresholdIncreaseSampleCountValue);
             messageSource->addFilter(datapoint.toString(), filter);
+
         } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {
             auto skipCount = messageFilter["skipCount"];
             qDebug() << skipCount;
@@ -202,7 +212,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
     m_client->setClientId(clientId);
     // Setup keep alive
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-    m_client->setAutoKeepAlive(true);
+    //m_client->setAutoKeepAlive(true);
 #else
     m_keepAliveSendTimer.setInterval(keepAliveTime * 1000);
     connect(&m_keepAliveSendTimer, &QTimer::timeout, [this](){
