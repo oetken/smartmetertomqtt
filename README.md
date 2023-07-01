@@ -35,7 +35,7 @@ Or build from source:
 Libmbus Libsml and QtMQTT:
 ```
 cd WHATEVERWORKSPACEYOUWANT
-sudo apt install -y git cmake build-essential qt5-default qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make
+sudo apt install -y git cmake build-essential qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make
 git clone https://github.com/rscada/libmbus
 git clone https://github.com/volkszaehler/libsml
 git clone https://github.com/qt/qtmqtt
@@ -74,7 +74,7 @@ dpkg -i *.deb
 ## Compile
 
 ```
-git clone https://gitlab.com/smart-home-tools/smartmetertomqtt.git
+git clone https://github.com/oetken/smartmetertomqtt.git
 cd smartmetertomqtt
 mkdir build
 cd build
