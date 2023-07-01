@@ -35,7 +35,7 @@ Or build from source:
 Libmbus Libsml and QtMQTT:
 ```
 cd WHATEVERWORKSPACEYOUWANT
-sudo apt install -y git cmake build-essential qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make
+sudo apt install -y git cmake build-essential qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make dh-exec
 git clone https://github.com/rscada/libmbus
 git clone https://github.com/volkszaehler/libsml
 git clone https://github.com/qt/qtmqtt
