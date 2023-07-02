@@ -60,7 +60,7 @@ dh_make -s -c gpl -e none@none.de --createorig -y
 dpkg-buildpackage -b --no-sign
 cd ..
 
-dpkg -i *.deb
+sudo dpkg -i *.deb
 
 # alternative for mqtt:
 #git checkout v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')
