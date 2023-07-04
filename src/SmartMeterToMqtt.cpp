@@ -259,7 +259,12 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
 
 
 bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
-    QString messageString = message.toString();
+    QString messageString = QString();
+    if (message.type() == QVariant::Double){
+        messageString = QString("%1").arg(message.value<double>(), 0, 'g', 12);
+    } else {
+        messageString = message.toString();
+    }
     qDebug() << "Sending" << topic << messageString;
     return (m_client->publish(topic, messageString.toUtf8()) == -1);
 }
