@@ -20,6 +20,7 @@
 #include "sml/sml_file.h"
 #include <QTextStream>
 #include <QDebug>
+#include "ObisCode.hpp"
 
 MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate)
 {
@@ -63,6 +64,7 @@ void MessageSourceSml::handleReadReady()
                    sml_get_list_response *body;
                    body = (sml_get_list_response *) message->message_body->data;
                    for (entry = body->val_list; entry != NULL; entry = entry->next) {
+                      ObisCode obis = ObisCode(entry->obj_name);
                       QString str = QString();
                       QTextStream vs(&str);
                       switch (entry->value->type) {
@@ -117,34 +119,31 @@ void MessageSourceSml::handleReadReady()
                         scaler = (scaler==-1) ? 0.0001 : scaler;
                         value.setValue<double>(val * scaler);
                       }
-                      QString string;
-                      QTextStream s(&string);
-                      s << entry->obj_name->str[0] << "-" << entry->obj_name->str[1]
-                        << ":" << entry->obj_name->str[2] << "." << entry->obj_name->str[3]
-                        << "." << entry->obj_name->str[4] << "*" << entry->obj_name->str[5];
-                      if(m_filters.contains(string))
+                      QString name = obis.toString();
+                      QString code = obis.toObisString();
+                      if(m_filters.contains(name) || m_filters.contains(code))
                       {
-                          QVariant variant = m_filters[string]->filter(value);
-                          if(!variant.isNull())
-                          {
-                              if(variant.canConvert<QVariantList>())
-                              {
-                                  for(QVariant element : variant.toList())
-                                  {
-                                      emit messageReceived(topicBase_ + "/" + string, element);
-                                      qDebug() << "filtered" << string << element;
-                                  }
-                              }
-                              else {
-                                  emit messageReceived(topicBase_ + "/" + string, variant);
-                                  qDebug() << "filtered" << string << variant;
-                              }
-                          }
+                        QVariant variant = m_filters.contains(code) ? m_filters[code]->filter(value) : m_filters[name]->filter(value);
+                        if(!variant.isNull())
+                        {
+                            if(variant.canConvert<QVariantList>())
+                            {
+                                for(QVariant element : variant.toList())
+                                {
+                                    emit messageReceived(topicBase_ + "/" + name, element);
+                                    qDebug() << "filtered" << name << element;
+                                }
+                            }
+                            else {
+                                emit messageReceived(topicBase_ + "/" + name, variant);
+                                qDebug() << "filtered" << name << variant;
+                            }
+                        }
                       }
                       else
                       {
-                          emit messageReceived(topicBase_ + "/" + string, value);
-                          qDebug() << string << value;
+                          emit messageReceived(topicBase_ + "/" + name, value);
+                          qDebug() << name << value;
                       }
                    }
                 }
