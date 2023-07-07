@@ -20,7 +20,10 @@
 #define OBISCODE_H
 
 #include <QString>
+#include <QHash>
 #include "sml/sml_octet_string.h"
+
+class ObisCode;
 
 class ObisCode
 {
@@ -33,11 +36,11 @@ class ObisCode
         ObisCode(octet_string* obis_code);
 
         bool isValid() const {return valid_;}
-        bool hasText() const {return isValid() && false;} //TODO: Has to be implmented!
-        QString getName() const {return QString();} //TODO: Has to be implmented!
-        QString toObisString() const;
-        QString toReadableString() const;
-        QString toString() const;
+        bool hasText() const {return isValid() && names_.contains(*this);} 
+        const QString getName() const {return names_.value(*this);}
+        const QString toObisString() const;
+        const QString toReadableString() const;
+        const QString toString() const;
 
     private:
         uint8_t medium_;
@@ -47,6 +50,18 @@ class ObisCode
         uint8_t group_;
         uint8_t range_;
         bool    valid_;
+
+        static const QHash<ObisCode,QString> names_;
 };
 
+inline bool operator==(const ObisCode &code1, const ObisCode &code2)
+{
+    return code1.toObisString() == code2.toObisString();
+}
+
+inline uint qHash(const ObisCode &key, uint seed)
+{
+    //return qHash(key.toObisString().toLatin1(), seed ^ 0xb036);
+    return qHash(key.toObisString(), seed ^ 0xb036);
+}
 #endif // OBISCODE_H

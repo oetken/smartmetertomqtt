@@ -123,7 +123,14 @@ void MessageSourceSml::handleReadReady()
                       QString code = obis.toObisString();
                       if(m_filters.contains(name) || m_filters.contains(code))
                       {
-                        QVariant variant = m_filters.contains(code) ? m_filters[code]->filter(value) : m_filters[name]->filter(value);
+                        QVariant variant;
+                        if(m_filters.contains(name))
+                        {
+                            variant = m_filters[name]->filter(value);
+                        }else{
+                            variant = m_filters[code]->filter(value);
+                        }
+
                         if(!variant.isNull())
                         {
                             if(variant.canConvert<QVariantList>())
@@ -156,4 +163,5 @@ void MessageSourceSml::handleReadReady()
         readData_.remove(0, readData_.length() - sizeof(startPattern_));
     }
 }
+
 

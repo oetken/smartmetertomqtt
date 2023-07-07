@@ -19,6 +19,19 @@
 #include "ObisCode.hpp"
 #include <QTextStream>
 
+const QHash<ObisCode,QString> ObisCode::names_{
+{{1,0,16,7,0}, {"power"}},
+{{1,0,1,8,0}, {"total_consumption"}},
+{{1,0,1,8,1}, {"total_consumption_ch1"}},
+{{1,0,1,8,2}, {"total_consumption_ch2"}},
+{{1,0,2,8,0}, {"total_feed"}},
+{{1,0,2,8,1}, {"total_feed_ch1"}},
+{{1,0,2,8,2}, {"total_feed_ch2"}},
+{{1,0,0,0,9}, {"serial"}},
+{{129,129,199,130,5}, {"public_key"}},
+{{129,129,199,130,3}, {"manufacture"}},
+};
+
 ObisCode::ObisCode(uint8_t medium, uint8_t channel, uint8_t value, uint8_t quantity, uint8_t group, uint8_t range) : 
 medium_(medium), channel_(channel), value_(value), quantity_(quantity), group_(group), range_(range), valid_(true)
 {
@@ -54,7 +67,7 @@ medium_(0), channel_(0), value_(0), quantity_(0), group_(0), range_(0), valid_(t
     }
 }
 
-QString ObisCode::toObisString() const 
+const QString ObisCode::toObisString() const 
 {
     QString string;
 
@@ -68,7 +81,7 @@ QString ObisCode::toObisString() const
     return string;
 }
 
-QString ObisCode::toReadableString() const 
+const QString ObisCode::toReadableString() const 
 {
     QString string;
 
@@ -82,7 +95,7 @@ QString ObisCode::toReadableString() const
     return string;
 }
 
-QString ObisCode::toString() const 
+const QString ObisCode::toString() const 
 {
     QString string;
 
