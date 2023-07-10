@@ -36,8 +36,10 @@ class ObisCode
         ObisCode(octet_string* obis_code);
 
         bool isValid() const {return valid_;}
-        bool hasText() const {return isValid() && names_.contains(*this);} 
-        const QString getName() const {return names_.value(*this);}
+        bool hasName() const {return isValid() && names_.contains(*this);} 
+        bool hasPostfix() const {return isValid() && postfixes_.contains(this.range_);} 
+        const QString getName() const {return hasName() ? names_.value(*this) : "";}
+        const QString getPostfix() const {return hasPostfix() ? postfixes_.value(this.range_) : '';}
         const QString toObisString() const;
         const QString toReadableString() const;
         const QString toString() const;
@@ -52,16 +54,20 @@ class ObisCode
         bool    valid_;
 
         static const QHash<ObisCode,QString> names_;
+        static const QHash<uint8_t,QString> postfixes_;
 };
 
 inline bool operator==(const ObisCode &code1, const ObisCode &code2)
 {
-    return code1.toObisString() == code2.toObisString();
+    return code1.medium_   == code2.medium_  &&
+           code1.channel_  == code2.channel_ &&
+           code1.value_    == code2.value_   &&
+           code1.quantity_ == code2.quantity_ &&
+           code1.group_    == code2.group_ ;
 }
 
 inline uint qHash(const ObisCode &key, uint seed)
 {
-    //return qHash(key.toObisString().toLatin1(), seed ^ 0xb036);
     return qHash(key.toObisString(), seed ^ 0xb036);
 }
 #endif // OBISCODE_H

@@ -20,16 +20,24 @@
 #include <QTextStream>
 
 const QHash<ObisCode,QString> ObisCode::names_{
-{{1,0,16,7,0}, {"power"}},
-{{1,0,1,8,0}, {"total_consumption"}},
-{{1,0,1,8,1}, {"total_consumption_ch1"}},
-{{1,0,1,8,2}, {"total_consumption_ch2"}},
-{{1,0,2,8,0}, {"total_feed"}},
-{{1,0,2,8,1}, {"total_feed_ch1"}},
-{{1,0,2,8,2}, {"total_feed_ch2"}},
-{{1,0,0,0,9}, {"serial"}},
-{{129,129,199,130,5}, {"public_key"}},
-{{129,129,199,130,3}, {"manufacture"}},
+    {{1,0,16,7,0}, {"power"}},
+    {{1,0,1,8,0}, {"total_consumption"}},
+    {{1,0,1,8,1}, {"total_consumption_ch1"}},
+    {{1,0,1,8,2}, {"total_consumption_ch2"}},
+    {{1,0,2,8,0}, {"total_feed"}},
+    {{1,0,2,8,1}, {"total_feed_ch1"}},
+    {{1,0,2,8,2}, {"total_feed_ch2"}},
+    {{1,0,0,0,9}, {"serial"}},
+    {{129,129,199,130,5}, {"public_key"}},
+    {{129,129,199,130,3}, {"manufacture"}}
+};
+
+const QHash<uint8_t,QString> ObisCode::postfixes_{
+    {{96},{"_last1d"}},
+    {{97},{"_last7d"}},
+    {{98},{"_last30d"}},
+    {{99},{"_last365d"}},
+    {{100},{"_since_rst"}},
 };
 
 ObisCode::ObisCode(uint8_t medium, uint8_t channel, uint8_t value, uint8_t quantity, uint8_t group, uint8_t range) : 
@@ -87,7 +95,11 @@ const QString ObisCode::toReadableString() const
 
     if (isValid())
     {
-        string = getName();
+        if (hasName()){
+            string = getName() + getPostfix();
+        }else{
+            string = toObisString();
+        }
     }else{
         string = QString("Invalid OBIS Code!");
     }
@@ -99,7 +111,7 @@ const QString ObisCode::toString() const
 {
     QString string;
 
-    if (hasText())
+    if (hasName())
     {
         string = toReadableString();
     }else{
