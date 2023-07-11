@@ -55,7 +55,7 @@ void MessageSourceSml::handleReadReady()
     	    qDebug() << "Found end pattern";
             sml_file *file = sml_file_parse((unsigned char*)(readData_.constData()) + sizeof(startPattern_), index - sizeof(startPattern_));
             int i = 0;
-            double value;
+            QVariant value;
             for (i = 0; i < file->messages_len; i++) {
                 sml_message *message = file->messages[i];
                 if (*message->message_body->tag == SML_MESSAGE_GET_LIST_RESPONSE) {
@@ -63,21 +63,60 @@ void MessageSourceSml::handleReadReady()
                    sml_get_list_response *body;
                    body = (sml_get_list_response *) message->message_body->data;
                    for (entry = body->val_list; entry != NULL; entry = entry->next) {
+                      QString str = QString();
+                      QTextStream vs(&str);
                       switch (entry->value->type) {
-                         case 0x51: value= *entry->value->data.int8; break;
-                         case 0x52: value= *entry->value->data.int16; break;
-                         case 0x54: value= *entry->value->data.int32; break;
-                         case 0x58: value= *entry->value->data.int64; break;
-                         case 0x61: value= *entry->value->data.uint8; break;
-                         case 0x62: value= *entry->value->data.uint16; break;
-                         case 0x64: value= *entry->value->data.uint32; break;
-                         case 0x68: value= *entry->value->data.uint64; break;
+                         // Octet String (exact decoding depends on datapoint...)
+                         case 0x00: 
+                         {
+                            bool doASCII = true;
+                            int j;
+                            
+                            // check if all values are valid printable characters
+                            for (j = 0; j < entry->value->data.bytes->len; j++) {
+                                if (!(entry->value->data.bytes->str[j] >= char('0') && entry->value->data.bytes->str[0] <= char('z'))){
+                                    doASCII = false;
+                                }
+                            }
+
+                            // convert array to string
+                            for (j = 0; j < entry->value->data.bytes->len; j++) {
+                                if (doASCII){
+                                    str.append(QChar(entry->value->data.bytes->str[j]));
+                                }else{
+                                    str.append(QString::number(entry->value->data.bytes->str[j], 16).rightJustified(2, QLatin1Char('0')));
+                                }
+                            }
+                            value.setValue(str);
+                            break;
+                         }
+
+                         // Boolean
+                         case 0x40: value.setValue<bool>(*entry->value->data.boolean); break;
+
+                         // Signed Integers
+                         case 0x51: value.setValue<double>(*entry->value->data.int8);  break;
+                         case 0x52: value.setValue<double>(*entry->value->data.int16); break;
+                         case 0x54: value.setValue<double>(*entry->value->data.int32); break;
+                         case 0x58: value.setValue<double>(*entry->value->data.int64); break;
+
+                         // Unsigned Integers
+                         case 0x61: value.setValue<double>(*entry->value->data.uint8);  break;
+                         case 0x62: value.setValue<double>(*entry->value->data.uint16); break;
+                         case 0x64: value.setValue<double>(*entry->value->data.uint32); break;
+                         case 0x68: value.setValue<double>(*entry->value->data.uint64); break;
+
+                         // Should never be reached
                          default:
-                            value = 0;
+                            vs << "Unkown type: " << Qt::hex << Qt::showbase << entry->value->type;
+                            value.setValue(str);
                       }
-                      int scaler = (entry->scaler) ? *entry->scaler : 1;
-                      if (scaler==-1)
-                         value *= 0.0001;
+                      if (value.type() == QVariant::Type::Double){ 
+                        double val = value.value<double>();
+                        double scaler = (entry->scaler) ? *entry->scaler : 1;
+                        scaler = (scaler==-1) ? 0.0001 : scaler;
+                        value.setValue<double>(val * scaler);
+                      }
                       QString string;
                       QTextStream s(&string);
                       s << entry->obj_name->str[0] << "-" << entry->obj_name->str[1]
