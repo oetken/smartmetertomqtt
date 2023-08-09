@@ -37,14 +37,14 @@ class ObisCode
 
         bool isValid() const {return valid_;}
         bool hasName() const {return isValid() && names_.contains(*this);} 
-        bool hasPostfix() const {return isValid() && postfixes_.contains(this.range_);} 
+        bool hasPostfix() const {return isValid() && postfixes_.contains(this->range_);} 
         const QString getName() const {return hasName() ? names_.value(*this) : "";}
-        const QString getPostfix() const {return hasPostfix() ? postfixes_.value(this.range_) : '';}
+        const QString getPostfix() const {return hasPostfix() ? postfixes_.value(this->range_) : "";}
         const QString toObisString() const;
         const QString toReadableString() const;
         const QString toString() const;
 
-    private:
+    protected:
         uint8_t medium_;
         uint8_t channel_;
         uint8_t value_;
@@ -53,6 +53,7 @@ class ObisCode
         uint8_t range_;
         bool    valid_;
 
+    private:
         static const QHash<ObisCode,QString> names_;
         static const QHash<uint8_t,QString> postfixes_;
 };
