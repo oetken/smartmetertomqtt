@@ -31,12 +31,19 @@ QString MessageFilterDelta::rename(QString name) {
 
 QVariant MessageFilterDelta::filter(QVariant value) {
     QVariant delta = QVariant();
-    if (!m_lastValue.isNull() && m_lastValue.canConvert<double>() && value.canConvert<double>())
+
+    if (value.canConvert<double>())
+    {
+      double new_val = value.value<double>();
+
+      if (!m_lastValue.isNull() && m_lastValue.canConvert<double>())
       {
         double old_val = m_lastValue.value<double>();
-        double new_val = value.value<double>();
         delta.setValue<double>(new_val - old_val);
       }
-    m_lastValue = value;
+
+      m_lastValue.setValue<double>(new_val);
+    }
+    
     return delta;
 }
