@@ -275,8 +275,8 @@ void MessageSourceMbusSerial::processFilters(const QString reference, auto value
                         emit messageReceived(m_topic + "/" + string, variant);
                         qDebug() << m_topic + "/" + string + "/" + variant.toString();
 
-                        emit messageReceived(m_topic + "/" + name, element);
-                        qDebug() << "filtered" << name << element;
+                        emit messageReceived(m_topic + "/" + string, element);
+                        qDebug() << "filtered" << string << element;
                     }
                 } else {
                     emit messageReceived(m_topic + "/" + string, variant);
