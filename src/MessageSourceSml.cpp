@@ -127,24 +127,24 @@ void MessageSourceSml::handleReadReady()
                         for(auto filter : filters)
                         {
                             QVariant variant = filter->filter(value);
-                            name = filter->rename(name);
+                            QString string = filter->rename(name);
                             if(!variant.isNull())
                             {
                                 if(variant.canConvert<QVariantList>())
                                 {
                                     for(QVariant element : variant.toList())
                                     {
-                                        emit messageReceived(topicBase_ + "/" + name, element);
-                                        qDebug() << "filtered" << name << element;
+                                        emit messageReceived(topicBase_ + "/" + string, element);
+                                        qDebug() << "filtered" << string << element;
                                     }
                                 } else {
-                                    emit messageReceived(topicBase_ + "/" + name, variant);
-                                    qDebug() << "filtered" << name << variant;
+                                    emit messageReceived(topicBase_ + "/" + string, variant);
+                                    qDebug() << "filtered" << string << variant;
                                 }
                             }
                             else {
-                                emit messageReceived(topicBase_ + "/" + name, variant);
-                                qDebug() << "filtered" << name << variant;
+                                emit messageReceived(topicBase_ + "/" + string, variant);
+                                qDebug() << "filtered" << string << variant;
                             }
                         }
                       } else {

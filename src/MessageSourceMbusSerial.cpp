@@ -243,32 +243,32 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
                 {
                     qDebug() << "Running filter" << filter->type();
                     QVariant variant = filter->filter(value);
-                    reference = filter->rename(reference);
+                    QString string = filter->rename(reference);
                     if(!variant.isNull())
                     {
                         if(variant.canConvert<QVariantList>())
                         {
                             for(QVariant element : variant.toList())
                             {
-                                emit messageReceived(m_topic + "/" + reference, variant);
-                                qDebug() << m_topic + "/" + reference + "/" + variant.toString();
+                                emit messageReceived(m_topic + "/" + string, variant);
+                                qDebug() << m_topic + "/" + string + "/" + variant.toString();
 
                                 emit messageReceived(m_topic + "/" + name, element);
                                 qDebug() << "filtered" << name << element;
                             }
                         } else {
-                            emit messageReceived(m_topic + "/" + reference, variant);
-                            qDebug() << m_topic + "/" + reference + "/" + variant.toString();
+                            emit messageReceived(m_topic + "/" + string, variant);
+                            qDebug() << m_topic + "/" + string + "/" + variant.toString();
                         }
                     }
                     else {
-                        emit messageReceived(m_topic + "/" + id + "/" + name, variant);
-                        qDebug() << m_topic + "/" + id + "/" + name + "/" + variant.toString();
+                        emit messageReceived(m_topic + "/" + string, variant);
+                        qDebug() << m_topic + "/" + string + "/" + variant.toString();
                     }
                 }
             } else {
-                qDebug() << m_topic + "/" + id + "/" + name + "/" + value;
-                emit messageReceived(m_topic + "/" + id + "/" + name, value);
+                qDebug() << m_topic + "/" + reference + "/" + value;
+                emit messageReceived(m_topic + "/" + reference, value);
             }
         }
     }
