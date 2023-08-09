@@ -32,6 +32,7 @@ public:
 private slots:
     void readData();
 private:
+    void processFilters(const QString reference, auto value);
     void handleXmlData(char * data);
     QTimer m_timer;
     QString m_device;
