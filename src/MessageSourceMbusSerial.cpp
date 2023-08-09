@@ -235,7 +235,7 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
             auto name = children.at(i).nodeName();
             QString reference = "slaveinfo/" + name;
 
-            processFilters(name, value);
+            processFilters(reference, value);
         }
     }
 
