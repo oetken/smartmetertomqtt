@@ -44,7 +44,9 @@ class ObisCode
         const QString toReadableString() const;
         const QString toString() const;
 
-    protected:
+        friend bool operator==(const ObisCode &lhs, const ObisCode &rhs);
+
+    private:
         uint8_t medium_;
         uint8_t channel_;
         uint8_t value_;
@@ -58,13 +60,13 @@ class ObisCode
         static const QHash<uint8_t,QString> postfixes_;
 };
 
-inline bool operator==(const ObisCode &code1, const ObisCode &code2)
+inline bool operator==(const ObisCode &lhs, const ObisCode &rhs)
 {
-    return code1.medium_   == code2.medium_  &&
-           code1.channel_  == code2.channel_ &&
-           code1.value_    == code2.value_   &&
-           code1.quantity_ == code2.quantity_ &&
-           code1.group_    == code2.group_ ;
+    return lhs.medium_   == rhs.medium_  &&
+           lhs.channel_  == rhs.channel_ &&
+           lhs.value_    == rhs.value_   &&
+           lhs.quantity_ == rhs.quantity_ &&
+           lhs.group_    == rhs.group_ ;
 }
 
 inline uint qHash(const ObisCode &key, uint seed)
