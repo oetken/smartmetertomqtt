@@ -256,7 +256,7 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
     }
 }
 
-void MessageSourceMbusSerial::processFilters(const QString reference, auto value){
+void MessageSourceMbusSerial::processFilters(const QString reference, const QString value){
     qDebug() << "Processing MBUS value" << reference;
 
     if(m_filters.contains(reference))
