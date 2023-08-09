@@ -22,11 +22,14 @@
 
 class MessageFilterSkip : public IMessageFilter{
 public:
-    explicit MessageFilterSkip(uint32_t skipCount);
+    explicit MessageFilterSkip(uint32_t skipCount, QString name);
     QVariant filter(QVariant value) override;
-
+    QString rename(QString name) override;
+    QString  type() override { return "Skip"; };
+ 
 private:
     uint32_t m_skipCount;
+    QString m_name;
     uint32_t m_skipped{};
 };
 

@@ -1,4 +1,4 @@
-/*  Copyright 2021 - 2021, Andreas Oetken and the smartmetertomqtt contributors.
+/*  Copyright 2023, Fabian Hassel and the smartmetertomqtt contributors.
 
     This file is part of SmartMeterToMqtt.
 
@@ -15,27 +15,11 @@
     You should have received a copy of the GNU General Public License
     along with SmartMeterToMqtt.  If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef QSMARTMETERTOMQTT_IMESSAGESOURCE_HPP
-#define QSMARTMETERTOMQTT_IMESSAGESOURCE_HPP
+#include "MessageFilterIgnore.hpp"
 
-#include <QObject>
-#include <QVariant>
-#include "IMessageFilter.hpp"
-#include <QMultiHash>
+MessageFilterIgnore::MessageFilterIgnore(){
+}
 
-class IMessageSource : public QObject{
-    Q_OBJECT
-public:
-    virtual void addFilter(QString datapoint, IMessageFilter * filter)
-    {
-        m_filters.insert(datapoint, filter);
-    }
-signals:
-    void messageReceived(QString topic, QVariant value);
-
-protected:
-    QMultiHash<QString, IMessageFilter *> m_filters;
-};
-
-
-#endif //QSMARTMETERTOMQTT_IMESSAGESOURCE_HPP
+QVariant MessageFilterIgnore::filter(QVariant value) {
+    return QVariant();
+}

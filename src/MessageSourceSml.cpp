@@ -123,22 +123,23 @@ void MessageSourceSml::handleReadReady()
                       QString code = obis.toObisString();
                       if(m_filters.contains(name) || m_filters.contains(code))
                       {
-                        QVariant variant;
-                        if(m_filters.contains(name))
+                        auto filters = m_filters.values(code) + m_filters.values(name);
+                        for(auto filter : filters)
                         {
-                            variant = m_filters[name]->filter(value);
-                        }else{
-                            variant = m_filters[code]->filter(value);
-                        }
-
-                        if(!variant.isNull())
-                        {
-                            if(variant.canConvert<QVariantList>())
+                            QVariant variant = filter->filter(value);
+                            name = filter->rename(name);
+                            if(!variant.isNull())
                             {
-                                for(QVariant element : variant.toList())
+                                if(variant.canConvert<QVariantList>())
                                 {
-                                    emit messageReceived(topicBase_ + "/" + name, element);
-                                    qDebug() << "filtered" << name << element;
+                                    for(QVariant element : variant.toList())
+                                    {
+                                        emit messageReceived(topicBase_ + "/" + name, element);
+                                        qDebug() << "filtered" << name << element;
+                                    }
+                                } else {
+                                    emit messageReceived(topicBase_ + "/" + name, variant);
+                                    qDebug() << "filtered" << name << variant;
                                 }
                             }
                             else {
@@ -146,9 +147,7 @@ void MessageSourceSml::handleReadReady()
                                 qDebug() << "filtered" << name << variant;
                             }
                         }
-                      }
-                      else
-                      {
+                      } else {
                           emit messageReceived(topicBase_ + "/" + name, value);
                           qDebug() << name << value;
                       }

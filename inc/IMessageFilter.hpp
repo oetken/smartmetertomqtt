@@ -9,6 +9,8 @@
 class IMessageFilter {
 public:
     virtual QVariant filter(QVariant value) = 0;
+    virtual QString  rename(QString name) { return name; };
+    virtual QString  type() = 0;
 };
 
 #endif //SMARTMETERTOMQTT_IMESSAGEFILTER_HPP
