@@ -142,10 +142,10 @@ void MessageSourceSml::handleReadReady()
                                     qDebug() << "filtered" << string << variant;
                                 }
                             }
-                            else {
-                                emit messageReceived(topicBase_ + "/" + string, variant);
-                                qDebug() << "filtered" << string << variant;
-                            }
+                            // else {
+                            //     emit messageReceived(topicBase_ + "/" + string, variant);
+                            //     qDebug() << "filtered" << string << variant;
+                            // }
                         }
                       } else {
                           emit messageReceived(topicBase_ + "/" + name, value);

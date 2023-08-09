@@ -261,10 +261,10 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
                             qDebug() << m_topic + "/" + string + "/" + variant.toString();
                         }
                     }
-                    else {
-                        emit messageReceived(m_topic + "/" + string, variant);
-                        qDebug() << m_topic + "/" + string + "/" + variant.toString();
-                    }
+                    // else {
+                    //     emit messageReceived(m_topic + "/" + string, variant);
+                    //     qDebug() << m_topic + "/" + string + "/" + variant.toString();
+                    // }
                 }
             } else {
                 qDebug() << m_topic + "/" + reference + "/" + value;
