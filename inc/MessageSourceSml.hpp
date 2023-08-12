@@ -20,6 +20,7 @@
 
 #include <QObject>
 #include <QSerialPort>
+#include <QTimer>
 #include "IMessageSource.hpp"
 
 class MessageSourceSml : public IMessageSource
@@ -28,8 +29,10 @@ class MessageSourceSml : public IMessageSource
 public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
     bool setup();
+    void test();
 private slots:
     void handleReadReady();
+    void handleWatchdog();
 
 private:
     QByteArray readData_;
@@ -39,7 +42,8 @@ private:
     uint32_t baudrate_;
     const char startPattern_[8] = {0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01};
     const char endPattern_[5] = {0x1b, 0x1b, 0x1b, 0x1b, 0x1a};
-
+    const int dataWatchdogTimeMs_ = 10 * 1000;
+    QTimer dataWatchdog_;
 };
 
 #endif // MESSAGESOURCESML_H

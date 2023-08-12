@@ -21,7 +21,16 @@
 #include <QTextStream>
 #include <QDebug>
 
-MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate)
+#ifdef Q_OS_LINUX
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/usbdevice_fs.h>
+#include <libudev.h>
+#endif
+
+MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), dataWatchdog_(QTimer())
 {
 }
 
@@ -34,9 +43,14 @@ bool MessageSourceSml::setup() {
     }
 
     connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+
+    // setup data watchdog to detect broken USB connection
+    connect(&dataWatchdog_, &QTimer::timeout, this, &MessageSourceSml::handleWatchdog);
+    dataWatchdog_.setInterval(dataWatchdogTimeMs_);
+    dataWatchdog_.start();
+    
     return true;
 }
-
 
 void MessageSourceSml::handleReadReady()
 {
@@ -46,7 +60,7 @@ void MessageSourceSml::handleReadReady()
     auto index = matcher.indexIn(readData_);
     if(index >= 0)
     {
-	qDebug() << "Found start pattern" << index;
+	    qDebug() << "Found start pattern" << index;
         readData_.remove(0, index);
         QByteArrayMatcher matcher(endPattern_, sizeof(endPattern_));
         index = matcher.indexIn(readData_, sizeof(startPattern_));
@@ -56,6 +70,12 @@ void MessageSourceSml::handleReadReady()
             sml_file *file = sml_file_parse((unsigned char*)(readData_.constData()) + sizeof(startPattern_), index - sizeof(startPattern_));
             int i = 0;
             QVariant value;
+
+            // data received, restart watchdog
+            if (file->messages_len > 0){
+                dataWatchdog_.start();
+            }
+            
             for (i = 0; i < file->messages_len; i++) {
                 sml_message *message = file->messages[i];
                 if (*message->message_body->tag == SML_MESSAGE_GET_LIST_RESPONSE) {
@@ -158,3 +178,99 @@ void MessageSourceSml::handleReadReady()
     }
 }
 
+void MessageSourceSml::handleWatchdog()
+{
+    qCritical() << "DATA WATCHDOG TIMEDOUT";
+
+    QString device = QString();
+
+    serialPort_.close();
+
+    #ifdef Q_OS_LINUX
+    qDebug() << "Trying to resolve" << device_;
+
+    int bus;
+    int address;
+    const char *path;
+    const char *sysattr;
+    struct udev *udev;
+    struct udev_enumerate *enumerate;
+    struct udev_list_entry *devices, *dev_list_entry;
+    struct udev_device *dev;
+
+    bus = -1;
+    address = -1;
+
+    udev = udev_new();
+    if (udev){
+        enumerate = udev_enumerate_new(udev);
+        udev_enumerate_add_match_subsystem(enumerate, "tty");
+        udev_enumerate_scan_devices(enumerate);
+
+        devices = udev_enumerate_get_list_entry(enumerate);
+        udev_list_entry_foreach(dev_list_entry, devices) {
+            path = udev_list_entry_get_name(dev_list_entry);
+            dev = udev_device_new_from_syspath(udev, path);
+
+            if(strcmp(udev_device_get_devnode(dev), device_.toStdString().c_str()) == 0)
+            {
+                dev = udev_device_get_parent_with_subsystem_devtype(
+                        dev,
+                        "usb",
+                        "usb_device");
+                sysattr = udev_device_get_sysattr_value(dev, "busnum");
+                if(sysattr != NULL)
+                {
+                    bus = strtol(sysattr, NULL, 10);
+                }
+                sysattr = udev_device_get_sysattr_value(dev, "devnum");
+                if(sysattr != NULL)
+                {
+                    address = strtol(sysattr, NULL, 10);
+                }
+                udev_device_unref(dev);
+                break;
+            }
+            udev_device_unref(dev);
+        }
+        udev_enumerate_unref(enumerate);
+        udev_unref(udev);
+    }else{
+        qCritical() << "UDEV ERROR";
+    }
+
+    if (bus > 0 && address > 0){
+        device = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
+        qDebug() << "Found:" << device_ << "is at" << device;
+    }else{
+        qCritical() << "Unable to resolve device" << device_;
+    }
+
+    if (!device.isEmpty()){
+        int fd = open(device.toStdString().c_str(), O_WRONLY);
+        bool sucess = false;
+        if (fd >= 0)
+        {
+            qDebug() << "Try to execute USBDEVFS_RESET on" << device;
+            int rc = ioctl(fd, USBDEVFS_RESET, 0);
+            if (rc == 0){
+                qInfo() << "Sucessfully reseted USB device " << device_ << "via " << device;
+                sucess = true;
+            }
+            close(fd);
+        }
+        if (!sucess){
+            qCritical() << "Unable to reset USB device " << device_;
+        }
+    }
+    #else
+    qCritical() << "USB-Reset is only supportet on Linux!";
+    #endif
+
+    serialPort_.open(QIODevice::ReadOnly);
+}
+
+void MessageSourceSml::test()
+{
+    handleWatchdog();
+}

@@ -50,7 +50,7 @@ ADD_EXECUTABLE(SmartMeterToMqtt ${SmartMeterToMqtt_resources} ${SmartMeterToMqtt
 
 set_target_properties(SmartMeterToMqtt PROPERTIES FOLDER "apps")
 target_include_directories(SmartMeterToMqtt PUBLIC "${PROJECT_SOURCE_DIR}/inc")
-TARGET_LINK_LIBRARIES(SmartMeterToMqtt ${EXTRA_LIBS} Qt5::XmlPatterns Qt5::SerialPort Qt5::Mqtt Qt5::Sql Qt5::Network libmbus.so libsml.so Qt5::Xml uuid)
+TARGET_LINK_LIBRARIES(SmartMeterToMqtt ${EXTRA_LIBS} Qt5::XmlPatterns Qt5::SerialPort Qt5::Mqtt Qt5::Sql Qt5::Network libmbus.so libsml.so Qt5::Xml uuid udev)
 
 install(TARGETS SmartMeterToMqtt 
         RUNTIME DESTINATION bin
