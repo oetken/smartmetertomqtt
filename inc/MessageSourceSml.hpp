@@ -30,12 +30,14 @@ public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
     bool setup();
 private:
-    bool connectUart();
     void disconnectUart();
+    bool connectUart(bool retry = false);
 
 private slots:
+    void retryConnectUart() { connectUart(true); };
     void handleReadReady();
     void handleWatchdog();
+    void resetUsbDevice();
 
 private:
     QByteArray readData_;
@@ -47,6 +49,7 @@ private:
     const char startPattern_[8] = {0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01};
     const char endPattern_[5] = {0x1b, 0x1b, 0x1b, 0x1b, 0x1a};
     const int dataWatchdogTimeMs_ = 10 * 1000;
+    uint64_t retryTimeMs_ = 30 * 1000;
     QTimer dataWatchdog_;
 };
 

@@ -22,7 +22,7 @@
 #include <QDebug>
 #include "ObisCode.hpp"
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX)
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -49,7 +49,7 @@ bool MessageSourceSml::setup() {
     return success;
 }
 
-bool MessageSourceSml::connectUart()
+bool MessageSourceSml::connectUart(bool retry)
 {
     // close connection (regardless if connected)
     disconnectUart();
@@ -58,6 +58,11 @@ bool MessageSourceSml::connectUart()
     serialPort_.setPortName(device_);
     if(!serialPort_.open(QIODevice::ReadOnly)) {
         qDebug() << "Failed to open serial port" << device_ << ":" << serialPort_.errorString();
+        if (retry){
+            resetUsbDevice();
+            qDebug() << "Trying to reconnect after" << retryTimeMs_ << "ms";
+            QTimer::singleShot(retryTimeMs_, this, &MessageSourceSml::retryConnectUart);
+        }
         return false;
     }
 
@@ -211,12 +216,26 @@ void MessageSourceSml::handleWatchdog()
 {
     qCritical() << "DATA WATCHDOG TIMEDOUT";
 
-    QString device = QString();
-
     disconnectUart();
+    resetUsbDevice();
+    connectUart();
+}
 
-    #ifdef Q_OS_LINUX
+void MessageSourceSml::resetUsbDevice()
+{
+    #if !defined(Q_OS_LINUX)
+    qCritical() << "USB-Reset is only supportet on Linux!";
+    return;
+    #endif
+  
+    int id = geteuid();
+    if (id != 0){
+        qCritical() << "USB-Reset requires root privileges but running as" << id << "!";
+        return;
+    }
+
     qDebug() << "Trying to resolve" << device_;
+    QString device = QString();
 
     int bus;
     int address;
@@ -292,9 +311,4 @@ void MessageSourceSml::handleWatchdog()
             qCritical() << "Unable to reset USB device " << device_;
         }
     }
-    #else
-    qCritical() << "USB-Reset is only supportet on Linux!";
-    #endif
-
-    connectUart();
 }
