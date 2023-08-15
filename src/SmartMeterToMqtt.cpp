@@ -92,6 +92,7 @@ bool SmartMeterToMqtt::getMessageSources()
 {
     auto messageSources = m_settings["MessageSources"].toArray();
     foreach (const auto & messageSource, messageSources) {
+        int32_t rc = -1;
         IMessageSource * iMessageSource = nullptr;
         auto type = messageSource["type"];
         auto topic = messageSource["topic"];
@@ -122,20 +123,24 @@ bool SmartMeterToMqtt::getMessageSources()
                 addresses.append(address.trimmed());
             }
             auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt(), pollIntervalSec.toInt());
-            ms->setup();
+            rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
         }
         else if(type == "Sml")
         {
             auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt());
-            ms->setup();
+            rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
         }
         else
         {
             qCritical() << "Settings: unknown message source" << type;
+            return false;
+        }
+        if (rc){
+            qCritical() << "Settings: setting up message source" << type << "FAILED with" << rc;
             return false;
         }
         auto messageFilters = messageSource["MessageFilters"].toArray();

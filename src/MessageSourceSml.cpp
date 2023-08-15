@@ -35,7 +35,7 @@ MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t b
 {
 }
 
-bool MessageSourceSml::setup() {
+int32_t MessageSourceSml::setup() {
      // setup data watchdog to detect broken USB connection
     connect(&dataWatchdog_, &QTimer::timeout, this, &MessageSourceSml::handleWatchdog);
     dataWatchdog_.setInterval(dataWatchdogTimeMs_);
@@ -44,9 +44,10 @@ bool MessageSourceSml::setup() {
     bool success = connectUart();
     if(success) {
         connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+        return 0;
     }
    
-    return success;
+    return 1;
 }
 
 bool MessageSourceSml::connectUart(bool retry)
