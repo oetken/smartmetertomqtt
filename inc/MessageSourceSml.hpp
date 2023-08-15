@@ -30,6 +30,10 @@ public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
     bool setup();
     void test();
+private:
+    bool connectUart();
+    void disconnectUart();
+
 private slots:
     void handleReadReady();
     void handleWatchdog();
@@ -40,6 +44,7 @@ private:
     QString topicBase_;
     QString device_;
     uint32_t baudrate_;
+    bool connected_;
     const char startPattern_[8] = {0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01};
     const char endPattern_[5] = {0x1b, 0x1b, 0x1b, 0x1b, 0x1a};
     const int dataWatchdogTimeMs_ = 10 * 1000;

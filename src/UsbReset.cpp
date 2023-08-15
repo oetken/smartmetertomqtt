@@ -15,6 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with SmartMeterToMqtt.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <QDebug>
 #include "UsbReset.hpp"
 
 #ifdef Q_OS_LINUX
@@ -30,7 +31,7 @@ UsbReset::UsbReset() {
 
 }
 
-void UsbReset:doReset(const QString device){
+void UsbReset::doReset(const QString device){
     bool success = false;
 
     #ifdef Q_OS_LINUX
@@ -59,6 +60,12 @@ void UsbReset:doReset(const QString device){
     #else
         qCritical() << "USB-Reset is only supportet on Linux!";
     #endif
+
+    if (success){
+        emit resetSuccess(device);
+    }else{
+        emit resetFailed(device);
+    }
 
     emit resetDone(success, device);
 }
@@ -121,12 +128,12 @@ QString UsbReset::resolveDevice(const QString device) const{
     }
 
     if (bus > 0 && address > 0){
-        rawdevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
-        qDebug() << "Found:" << device << "is at" << rawdevice;
+        rawDevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
+        qDebug() << "Found:" << device << "is at" << rawDevice;
     }else{
         qCritical() << "Unable to resolve device" << device;
     }
     #endif
 
-    return rawdevice;
+    return rawDevice;
 }

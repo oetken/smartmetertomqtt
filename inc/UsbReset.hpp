@@ -18,14 +18,21 @@
 #ifndef SMARTMETERTOMQTT_USBRESET_HPP
 #define SMARTMETERTOMQTT_USBRESET_HPP
 
+#include <QObject>
+#include <QThread>
+
 class UsbReset : public QThread{
+    Q_OBJECT
 public:
     explicit UsbReset();
 public slots:
     void doReset(const QString device);
 protected:
     QString resolveDevice(const QString) const;
+
 signals:
+    void resetSuccess(QString device);
+    void resetFailed(QString device);
     void resetDone(bool success, QString device);
 };
 

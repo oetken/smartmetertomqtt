@@ -30,26 +30,50 @@
 #include <libudev.h>
 #endif
 
-MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), dataWatchdog_(QTimer())
+MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
 {
 }
 
 bool MessageSourceSml::setup() {
+     // setup data watchdog to detect broken USB connection
+    connect(&dataWatchdog_, &QTimer::timeout, this, &MessageSourceSml::handleWatchdog);
+    dataWatchdog_.setInterval(dataWatchdogTimeMs_);
+
+    // connect serial port
+    bool success = connectUart();
+    if(success) {
+        connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+    }
+   
+    return success;
+}
+
+bool MessageSourceSml::connectUart()
+{
+    // close connection (regardless if connected)
+    disconnectUart();
+
     serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate_));
     serialPort_.setPortName(device_);
     if(!serialPort_.open(QIODevice::ReadOnly)) {
-        qCritical() << "Faield to open serial port" << serialPort_.errorString();
+        qDebug() << "Failed to open serial port" << device_ << ":" << serialPort_.errorString();
         return false;
     }
 
-    connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
-
-    // setup data watchdog to detect broken USB connection
-    connect(&dataWatchdog_, &QTimer::timeout, this, &MessageSourceSml::handleWatchdog);
-    dataWatchdog_.setInterval(dataWatchdogTimeMs_);
+    // start watchdog
     dataWatchdog_.start();
-    
+    connected_ = true;
+
     return true;
+}
+
+void MessageSourceSml::disconnectUart()
+{
+    if (connected_){
+        serialPort_.close();
+        connected_ = false;
+    }
+    serialPort_.clearError();
 }
 
 void MessageSourceSml::handleReadReady()
@@ -184,7 +208,7 @@ void MessageSourceSml::handleWatchdog()
 
     QString device = QString();
 
-    serialPort_.close();
+    disconnectUart();
 
     #ifdef Q_OS_LINUX
     qDebug() << "Trying to resolve" << device_;
@@ -267,7 +291,7 @@ void MessageSourceSml::handleWatchdog()
     qCritical() << "USB-Reset is only supportet on Linux!";
     #endif
 
-    serialPort_.open(QIODevice::ReadOnly);
+    connectUart();
 }
 
 void MessageSourceSml::test()
