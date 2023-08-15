@@ -223,6 +223,22 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
         return;
     }
     auto root = document.firstChildElement();
+
+    auto SlaveInformation = root.toElement().elementsByTagName("SlaveInformation");
+    for(int i = 0; i < SlaveInformation.count(); i++)
+    {
+        auto SlaveInfo = SlaveInformation.at(i).toElement();
+        auto children = SlaveInfo.childNodes();
+        for(int i = 0; i < children.count(); i++)
+        {
+            auto value = children.at(i).toElement().text();
+            auto name = children.at(i).nodeName();
+            QString reference = "slaveinfo/" + name;
+
+            processFilters(reference, value);
+        }
+    }
+
     auto DataRecords = root.toElement().elementsByTagName("DataRecord");
     for(int i = 0; i < DataRecords.count(); i++)
     {
@@ -233,33 +249,44 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
         {
             auto value = children.at(i).toElement().text();
             auto name = children.at(i).nodeName();
-            if(m_filters.contains(id + "/" + name))
-            {
-                QVariant variant = m_filters[id + "/" + name]->filter(value);
-                if(!variant.isNull())
-                {
-                    if(variant.canConvert<QVariantList>())
-                    {
-                        for(QVariant element : variant.toList())
-                        {
-                            emit messageReceived(m_topic + "/" + id + "/" + name, variant);
-                            qDebug() << m_topic + "/" + id + "/" + name + "/" + variant.toString();
+            QString reference = id + "/" + name;
 
-                            emit messageReceived(m_topic + "/" + name, element);
-                            qDebug() << "filtered" << name << element;
-                        }
+            processFilters(reference, value);
+        }
+    }
+}
+
+void MessageSourceMbusSerial::processFilters(const QString reference, const QString value){
+    qDebug() << "Processing MBUS value" << reference;
+
+    if(m_filters.contains(reference))
+    {
+        for(auto filter : m_filters.values(reference))
+        {
+            qDebug() << "Running filter" << filter->type();
+            QVariant variant = filter->filter(value);
+            QString string = filter->rename(reference);
+            if(!variant.isNull())
+            {
+                if(variant.canConvert<QVariantList>())
+                {
+                    for(QVariant element : variant.toList())
+                    {
+                        emit messageReceived(m_topic + "/" + string, variant);
+                        qDebug() << m_topic + "/" + string + "/" + variant.toString();
+
+                        emit messageReceived(m_topic + "/" + string, element);
+                        qDebug() << "filtered" << string << element;
                     }
-                    else {
-                        emit messageReceived(m_topic + "/" + id + "/" + name, variant);
-                        qDebug() << m_topic + "/" + id + "/" + name + "/" + variant.toString();
-                    }
+                } else {
+                    emit messageReceived(m_topic + "/" + string, variant);
+                    qDebug() << m_topic + "/" + string + "/" + variant.toString();
                 }
             }
-            else{
-                qDebug() << m_topic + "/" + id + "/" + name + "/" + value;
-                emit messageReceived(m_topic + "/" + id + "/" + name, value);
-            }
         }
+    } else {
+        qDebug() << m_topic + "/" + reference + "/" + value;
+        emit messageReceived(m_topic + "/" + reference, value);
     }
 }
 

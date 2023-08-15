@@ -1,6 +1,6 @@
 [Unit]
 Description=SmartMeter
-Documentation=https://gitlab.com/smart-home-tools/smartmetertomqtt
+Documentation=https://github.com/oetken/smartmetertomqtt
 
 [Service]
 Type=simple
