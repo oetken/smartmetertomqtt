@@ -29,7 +29,6 @@ class MessageSourceSml : public IMessageSource
 public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
     bool setup();
-    void test();
 private:
     bool connectUart();
     void disconnectUart();

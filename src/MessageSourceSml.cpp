@@ -298,8 +298,3 @@ void MessageSourceSml::handleWatchdog()
 
     connectUart();
 }
-
-void MessageSourceSml::test()
-{
-    handleWatchdog();
-}
