@@ -50,8 +50,13 @@ cd libmbus
 cd ..
 
 cd qtmqtt
-QT_VERSION=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p');
-git checkout v$QT_VERSION;
+QT_VERSION="v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')";
+git tag -l | grep -E "${QT_VERSION}$";
+if [ $? -ne 0 ]; then 
+QT_MAJOR=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.\)[0-9]*\s*.*/\1/p');
+QT_VERSION=$(git tag -l | grep -E "${QT_MAJOR}[0-9]+$" | tail -n 1);
+fi
+git checkout $QT_VERSION;
 #if no suitable version is found check tags and pick a good one
 cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"
 cd qtmqtt-$QT_VERSION
