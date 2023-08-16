@@ -49,18 +49,12 @@ cd libmbus
 ./build-deb.sh
 cd ..
 
-cd qtmqtt
-QT_VERSION="v$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')";
-git tag -l | grep -E "${QT_VERSION}$";
-if [ $? -ne 0 ]; then 
-QT_MAJOR=$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.\)[0-9]*\s*.*/\1/p');
-QT_VERSION=$(git tag -l | grep -E "${QT_MAJOR}[0-9]+$" | tail -n 1);
-fi
-git checkout $QT_VERSION;
-#if no suitable version is found check tags and pick a good one
-cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"
-cd qtmqtt-$QT_VERSION
-qmake
+cd qtmqtt;
+QT_VERSION="$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')";
+git tag -l | grep -E "${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.\)[0-9]*\s*.*/\1/p')[0-9]+$" | tail -n 1);
+git checkout v$QT_VERSION;
+cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"; cd "qtmqtt-$QT_VERSION";
+qmake;
 dh_make -s -c gpl -e none@none.de --createorig -y
 dpkg-buildpackage -b --no-sign
 cd ..
