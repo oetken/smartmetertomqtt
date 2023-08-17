@@ -307,7 +307,7 @@ void MessageSourceSml::resetUsbDevice()
             qDebug() << "Try to execute USBDEVFS_RESET on" << rawDevice;
             int rc = ioctl(fd, USBDEVFS_RESET, 0);
             if (rc == 0){
-                qInfo() << "Sucessfully reseted USB device " << ttyDevice << "via " << rawDevice;
+                qInfo() << "Sucessfully reseted USB device" << ttyDevice << "via" << rawDevice;
                 sucess = true;
             }
             close(fd);
