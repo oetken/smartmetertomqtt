@@ -235,8 +235,12 @@ void MessageSourceSml::resetUsbDevice()
         return;
     }
 
-    qDebug() << "Trying to resolve" << device_;
-    QString device = QString();
+    QString ttyDevice = realpath(device_.toStdString().c_str(), NULL);
+    if (ttyDevice != device_){
+        qInfo() << "Symlink resolved:" << device_ << "is originally located at" << ttyDevice;
+    }
+    qDebug() << "Trying to resolve raw device of" << ttyDevice;
+    QString rawDevice = QString();
 
     int bus;
     int address;
@@ -261,7 +265,7 @@ void MessageSourceSml::resetUsbDevice()
             path = udev_list_entry_get_name(dev_list_entry);
             dev = udev_device_new_from_syspath(udev, path);
 
-            if(strcmp(udev_device_get_devnode(dev), device_.toStdString().c_str()) == 0)
+            if(strcmp(udev_device_get_devnode(dev), ttyDevice.toStdString().c_str()) == 0)
             {
                 dev = udev_device_get_parent_with_subsystem_devtype(
                         dev,
@@ -289,27 +293,27 @@ void MessageSourceSml::resetUsbDevice()
     }
 
     if (bus > 0 && address > 0){
-        device = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
-        qDebug() << "Found:" << device_ << "is at" << device;
+        rawDevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
+        qDebug() << "Found:" << ttyDevice <<  "is at" << rawDevice;
     }else{
-        qCritical() << "Unable to resolve device" << device_;
+        qCritical() << "Unable to resolve device" << ttyDevice;
     }
 
-    if (!device.isEmpty()){
-        int fd = open(device.toStdString().c_str(), O_WRONLY);
+    if (!rawDevice.isEmpty()){
+        int fd = open(rawDevice.toStdString().c_str(), O_WRONLY);
         bool sucess = false;
         if (fd >= 0)
         {
-            qDebug() << "Try to execute USBDEVFS_RESET on" << device;
+            qDebug() << "Try to execute USBDEVFS_RESET on" << rawDevice;
             int rc = ioctl(fd, USBDEVFS_RESET, 0);
             if (rc == 0){
-                qInfo() << "Sucessfully reseted USB device " << device_ << "via " << device;
+                qInfo() << "Sucessfully reseted USB device " << ttyDevice << "via " << rawDevice;
                 sucess = true;
             }
             close(fd);
         }
         if (!sucess){
-            qCritical() << "Unable to reset USB device " << device_;
+            qCritical() << "Unable to reset USB device " << ttyDevice;
         }
     }
 }
