@@ -220,7 +220,7 @@ void MessageSourceSml::handleWatchdog()
 
     disconnectUart();
     resetUsbDevice();
-    connectUart();
+    connectUart(true);
 }
 
 void MessageSourceSml::resetUsbDevice()
