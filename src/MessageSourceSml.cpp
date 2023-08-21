@@ -58,10 +58,10 @@ bool MessageSourceSml::connectUart(bool retry)
     serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate_));
     serialPort_.setPortName(device_);
     if(!serialPort_.open(QIODevice::ReadOnly)) {
-        qDebug() << "Failed to open serial port" << device_ << ":" << serialPort_.errorString();
+        qCritical() << "Failed to open serial port" << device_ << ":" << serialPort_.errorString();
         if (retry){
             resetUsbDevice();
-            qDebug() << "Trying to reconnect after" << retryTimeMs_ << "ms";
+            qCritical() << "Trying to reconnect after" << retryTimeMs_ << "ms";
             QTimer::singleShot(retryTimeMs_, this, &MessageSourceSml::retryConnectUart);
         }
         return false;
@@ -80,6 +80,7 @@ void MessageSourceSml::disconnectUart()
         serialPort_.close();
         connected_ = false;
     }
+    dataWatchdog_.stop();
     serialPort_.clearError();
 }
 
