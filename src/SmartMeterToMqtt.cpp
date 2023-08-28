@@ -272,7 +272,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
 }
 
 
-bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
+bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message, bool retain) {
     QString messageString = QString();
     if (message.type() == QVariant::Double){
         messageString = QString("%1").arg(message.value<double>(), 0, 'g', 12);
@@ -280,7 +280,7 @@ bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
         messageString = message.toString();
     }
     qDebug() << "Sending" << topic << messageString;
-    return (m_client->publish(topic, messageString.toUtf8(),0, true) == -1);
+    return (m_client->publish(topic, messageString.toUtf8(), 0, retain) == -1);
 }
 
 void SmartMeterToMqtt::updateLogStateChange(QMqttClient::ClientState state) {
@@ -299,7 +299,7 @@ void SmartMeterToMqtt::brokerDisconnected() {
 
 void SmartMeterToMqtt::timerTimedout() {
     static uint32_t x = 0;
-    publishMqttMessage("test/test", x++);
+    publishMqttMessage("test/test", x++, false);
 }
 
 bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
@@ -308,5 +308,5 @@ bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
 }
 
 void SmartMeterToMqtt::messageReceived(QString topic, QVariant message) {
-    publishMqttMessage(topic, message);
+    publishMqttMessage(topic, message, true);
 }
