@@ -280,7 +280,7 @@ bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
         messageString = message.toString();
     }
     qDebug() << "Sending" << topic << messageString;
-    return (m_client->publish(topic, messageString.toUtf8()) == -1);
+    return (m_client->publish(topic, messageString.toUtf8(),0, true) == -1);
 }
 
 void SmartMeterToMqtt::updateLogStateChange(QMqttClient::ClientState state) {
