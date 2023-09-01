@@ -220,7 +220,8 @@ void MessageSourceSml::handleWatchdog()
 
     disconnectUart();
     resetUsbDevice();
-    connectUart();
+    
+    QTimer::singleShot(2000, this, &MessageSourceSml::retryConnectUart);
 }
 
 void MessageSourceSml::resetUsbDevice()
