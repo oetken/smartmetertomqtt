@@ -52,7 +52,6 @@ int32_t MessageSourceSml::setup() {
 
 bool MessageSourceSml::connectUart(bool retry)
 {
-    // close connection (regardless if connected)
     disconnectUart();
 
     serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate_));

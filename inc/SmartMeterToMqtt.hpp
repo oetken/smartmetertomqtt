@@ -35,7 +35,7 @@ public:
     bool addMessageSource(IMessageSource * messageSource);
     bool setup();
     bool setupClient(QString hostname, uint16_t port, QString user, QString password, QString clientId = "", uint32_t keepAliveTime = 10);
-    bool publishMqttMessage(QString topic, QVariant message);
+    bool publishMqttMessage(QString topic, QVariant message, bool retain = true);
     bool getMessageSources();
 private:
     bool getFilters(QJsonArray &messageFilters, IMessageSource *filters);
