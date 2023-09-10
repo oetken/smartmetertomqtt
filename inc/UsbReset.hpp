@@ -24,16 +24,23 @@
 class UsbReset : public QThread{
     Q_OBJECT
 public:
-    explicit UsbReset();
+    explicit UsbReset(void);
+    explicit UsbReset(const QString device);
+
 public slots:
+    void doReset() { doReset(this->device_); };
     void doReset(const QString device);
+
 protected:
-    QString resolveDevice(const QString) const;
+    QString resolveDevice(const QString device) const;
 
 signals:
     void resetSuccess(QString device);
     void resetFailed(QString device);
     void resetDone(bool success, QString device);
+
+private:
+    QString device_;
 };
 
 

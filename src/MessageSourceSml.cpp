@@ -21,6 +21,7 @@
 #include <QTextStream>
 #include <QDebug>
 #include "ObisCode.hpp"
+#include "UsbReset.hpp"
 
 #if defined(Q_OS_LINUX)
 #include <stdio.h>
@@ -33,6 +34,11 @@
 
 MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
 {
+    usbReset_ = new UsbReset(device);
+}
+
+MessageSourceSml::~MessageSourceSml(void){
+    delete usbReset_;
 }
 
 int32_t MessageSourceSml::setup() {
@@ -225,96 +231,5 @@ void MessageSourceSml::handleWatchdog()
 
 void MessageSourceSml::resetUsbDevice()
 {
-    #if !defined(Q_OS_LINUX)
-    qCritical() << "USB-Reset is only supportet on Linux!";
-    return;
-    #endif
-  
-    int id = geteuid();
-    if (id != 0){
-        qCritical() << "USB-Reset requires root privileges but running as" << id << "!";
-        return;
-    }
-
-    QString ttyDevice = realpath(device_.toStdString().c_str(), NULL);
-    if (ttyDevice != device_){
-        qInfo() << "Symlink resolved:" << device_ << "is originally located at" << ttyDevice;
-    }
-    qDebug() << "Trying to resolve raw device of" << ttyDevice;
-    QString rawDevice = QString();
-
-    int bus;
-    int address;
-    const char *path;
-    const char *sysattr;
-    struct udev *udev;
-    struct udev_enumerate *enumerate;
-    struct udev_list_entry *devices, *dev_list_entry;
-    struct udev_device *dev;
-
-    bus = -1;
-    address = -1;
-
-    udev = udev_new();
-    if (udev){
-        enumerate = udev_enumerate_new(udev);
-        udev_enumerate_add_match_subsystem(enumerate, "tty");
-        udev_enumerate_scan_devices(enumerate);
-
-        devices = udev_enumerate_get_list_entry(enumerate);
-        udev_list_entry_foreach(dev_list_entry, devices) {
-            path = udev_list_entry_get_name(dev_list_entry);
-            dev = udev_device_new_from_syspath(udev, path);
-
-            if(strcmp(udev_device_get_devnode(dev), ttyDevice.toStdString().c_str()) == 0)
-            {
-                dev = udev_device_get_parent_with_subsystem_devtype(
-                        dev,
-                        "usb",
-                        "usb_device");
-                sysattr = udev_device_get_sysattr_value(dev, "busnum");
-                if(sysattr != NULL)
-                {
-                    bus = strtol(sysattr, NULL, 10);
-                }
-                sysattr = udev_device_get_sysattr_value(dev, "devnum");
-                if(sysattr != NULL)
-                {
-                    address = strtol(sysattr, NULL, 10);
-                }
-                udev_device_unref(dev);
-                break;
-            }
-            udev_device_unref(dev);
-        }
-        udev_enumerate_unref(enumerate);
-        udev_unref(udev);
-    }else{
-        qCritical() << "UDEV ERROR";
-    }
-
-    if (bus > 0 && address > 0){
-        rawDevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
-        qDebug() << "Found:" << ttyDevice <<  "is at" << rawDevice;
-    }else{
-        qCritical() << "Unable to resolve device" << ttyDevice;
-    }
-
-    if (!rawDevice.isEmpty()){
-        int fd = open(rawDevice.toStdString().c_str(), O_WRONLY);
-        bool sucess = false;
-        if (fd >= 0)
-        {
-            qDebug() << "Try to execute USBDEVFS_RESET on" << rawDevice;
-            int rc = ioctl(fd, USBDEVFS_RESET, 0);
-            if (rc == 0){
-                qInfo() << "Sucessfully reseted USB device" << ttyDevice << "via" << rawDevice;
-                sucess = true;
-            }
-            close(fd);
-        }
-        if (!sucess){
-            qCritical() << "Unable to reset USB device " << ttyDevice;
-        }
-    }
+    usbReset_->doReset();
 }

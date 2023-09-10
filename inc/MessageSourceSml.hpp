@@ -22,12 +22,14 @@
 #include <QSerialPort>
 #include <QTimer>
 #include "IMessageSource.hpp"
+#include "UsbReset.hpp"
 
 class MessageSourceSml : public IMessageSource
 {
     Q_OBJECT
 public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
+    virtual ~MessageSourceSml(void);
     int32_t setup();
 private:
     void disconnectUart();
@@ -51,6 +53,7 @@ private:
     const int dataWatchdogTimeMs_ = 10 * 1000;
     uint64_t retryTimeMs_ = 30 * 1000;
     QTimer dataWatchdog_;
+    UsbReset* usbReset_;
 };
 
 #endif // MESSAGESOURCESML_H

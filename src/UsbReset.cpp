@@ -27,11 +27,15 @@
 #include <libudev.h>
 #endif
 
-UsbReset::UsbReset() {
+UsbReset::UsbReset(void) : device_(QString()){
+    
+}
+
+UsbReset::UsbReset(const QString device) : device_(device) {
 
 }
 
-void UsbReset::doReset(const QString device){
+void UsbReset::doReset(const QString device) {
     bool success = false;
 
     #ifdef Q_OS_LINUX
@@ -44,16 +48,16 @@ void UsbReset::doReset(const QString device){
                 int fd = open(device.toStdString().c_str(), O_WRONLY);
                 if (fd >= 0)
                 {
-                    qDebug() << "Try to execute USBDEVFS_RESET on" << device;
+                    qDebug() << "Try to execute USBDEVFS_RESET on" << rawDevice;
                     int rc = ioctl(fd, USBDEVFS_RESET, 0);
                     if (rc == 0){
-                        qInfo() << "Sucessfully reseted USB device " << device << "via " << rawDevice;
+                        qInfo() << "Sucessfully reseted USB device" << device << "via" << rawDevice;
                         success = true;
                     }
                     close(fd);
                 }
                 if (!success){
-                    qCritical() << "Unable to reset USB device " << device;
+                    qCritical() << "Unable to reset USB device" << device;
                 }
             }
         }
@@ -71,11 +75,7 @@ void UsbReset::doReset(const QString device){
 }
 
 QString UsbReset::resolveDevice(const QString device) const{
-    #ifdef Q_OS_LINUX
-
-    QString rawDevice = QString();
-
-    qDebug() << "Trying to resolve" << device;
+    #if defined(Q_OS_LINUX)
 
     int bus;
     int address;
@@ -85,6 +85,14 @@ QString UsbReset::resolveDevice(const QString device) const{
     struct udev_enumerate *enumerate;
     struct udev_list_entry *devices, *dev_list_entry;
     struct udev_device *dev;
+
+    qDebug() << "Trying to resolve symlink of" << device;
+    QString ttyDevice = realpath(device.toStdString().c_str(), NULL);
+    if (ttyDevice != device){
+        qInfo() << "Symlink resolved:" << device << "is originally located at" << ttyDevice;
+    }
+
+    qDebug() << "Trying to resolve raw device of" << device;
 
     bus = -1;
     address = -1;
@@ -127,11 +135,12 @@ QString UsbReset::resolveDevice(const QString device) const{
         qCritical() << "UDEV ERROR";
     }
 
+    QString rawDevice = QString();
     if (bus > 0 && address > 0){
         rawDevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
-        qDebug() << "Found:" << device << "is at" << rawDevice;
+        qDebug() << "Found:" << device << "has raw device at" << rawDevice;
     }else{
-        qCritical() << "Unable to resolve device" << device;
+        qCritical() << "Unable to resolve raw device of" << device;
     }
     #endif
 
