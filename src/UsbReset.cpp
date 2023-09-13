@@ -45,7 +45,7 @@ void UsbReset::doReset(const QString device) {
             QString rawDevice = resolveDevice(device);
 
             if (!rawDevice.isEmpty()){
-                int fd = open(device.toStdString().c_str(), O_WRONLY);
+                int fd = open(rawDevice.toStdString().c_str(), O_WRONLY);
                 if (fd >= 0)
                 {
                     qDebug() << "Try to execute USBDEVFS_RESET on" << rawDevice;
@@ -75,6 +75,7 @@ void UsbReset::doReset(const QString device) {
 }
 
 QString UsbReset::resolveDevice(const QString device) const{
+    QString rawDevice = QString();
     #if defined(Q_OS_LINUX)
 
     int bus;
@@ -92,7 +93,7 @@ QString UsbReset::resolveDevice(const QString device) const{
         qInfo() << "Symlink resolved:" << device << "is originally located at" << ttyDevice;
     }
 
-    qDebug() << "Trying to resolve raw device of" << device;
+    qDebug() << "Trying to resolve raw device of" << device << "==" << ttyDevice;
 
     bus = -1;
     address = -1;
@@ -108,7 +109,7 @@ QString UsbReset::resolveDevice(const QString device) const{
             path = udev_list_entry_get_name(dev_list_entry);
             dev = udev_device_new_from_syspath(udev, path);
 
-            if(strcmp(udev_device_get_devnode(dev), device.toStdString().c_str()) == 0)
+            if(strcmp(udev_device_get_devnode(dev), ttyDevice.toStdString().c_str()) == 0)
             {
                 dev = udev_device_get_parent_with_subsystem_devtype(
                         dev,
@@ -135,12 +136,11 @@ QString UsbReset::resolveDevice(const QString device) const{
         qCritical() << "UDEV ERROR";
     }
 
-    QString rawDevice = QString();
     if (bus > 0 && address > 0){
         rawDevice = QString("/dev/bus/usb/%1/%2").arg(bus,3,10,QChar('0')).arg(address,3,10,QChar('0'));
-        qDebug() << "Found:" << device << "has raw device at" << rawDevice;
+        qDebug() << "Found:" << device << "==" << ttyDevice << "has raw device at" << rawDevice;
     }else{
-        qCritical() << "Unable to resolve raw device of" << device;
+        qCritical() << "Unable to resolve raw device of" << device << "==" << ttyDevice;
     }
     #endif
 
