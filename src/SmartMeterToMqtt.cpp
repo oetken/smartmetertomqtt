@@ -92,6 +92,7 @@ bool SmartMeterToMqtt::getMessageSources()
 {
     auto messageSources = m_settings["MessageSources"].toArray();
     foreach (const auto & messageSource, messageSources) {
+        int32_t rc = -1;
         IMessageSource * iMessageSource = nullptr;
         auto type = messageSource["type"];
         auto topic = messageSource["topic"];
@@ -122,20 +123,24 @@ bool SmartMeterToMqtt::getMessageSources()
                 addresses.append(address.trimmed());
             }
             auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt(), pollIntervalSec.toInt());
-            ms->setup();
+            rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
         }
         else if(type == "Sml")
         {
             auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt());
-            ms->setup();
+            rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
         }
         else
         {
             qCritical() << "Settings: unknown message source" << type;
+            return false;
+        }
+        if (rc){
+            qCritical() << "Settings: setting up message source" << type << "FAILED with" << rc;
             return false;
         }
         auto messageFilters = messageSource["MessageFilters"].toArray();
@@ -267,7 +272,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
 }
 
 
-bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
+bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message, bool retain) {
     QString messageString = QString();
     if (message.type() == QVariant::Double){
         messageString = QString("%1").arg(message.value<double>(), 0, 'g', 12);
@@ -275,7 +280,7 @@ bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message) {
         messageString = message.toString();
     }
     qDebug() << "Sending" << topic << messageString;
-    return (m_client->publish(topic, messageString.toUtf8()) == -1);
+    return (m_client->publish(topic, messageString.toUtf8(), 0, retain) == -1);
 }
 
 void SmartMeterToMqtt::updateLogStateChange(QMqttClient::ClientState state) {
@@ -294,7 +299,7 @@ void SmartMeterToMqtt::brokerDisconnected() {
 
 void SmartMeterToMqtt::timerTimedout() {
     static uint32_t x = 0;
-    publishMqttMessage("test/test", x++);
+    publishMqttMessage("test/test", x++, false);
 }
 
 bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
@@ -303,5 +308,5 @@ bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
 }
 
 void SmartMeterToMqtt::messageReceived(QString topic, QVariant message) {
-    publishMqttMessage(topic, message);
+    publishMqttMessage(topic, message, true);
 }

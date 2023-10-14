@@ -21,23 +21,73 @@
 #include <QTextStream>
 #include <QDebug>
 #include "ObisCode.hpp"
+#include "UsbReset.hpp"
 
-MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate)
+#if defined(Q_OS_LINUX)
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <linux/usbdevice_fs.h>
+#include <libudev.h>
+#endif
+
+MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
 {
+    usbReset_ = new UsbReset(device);
 }
 
-bool MessageSourceSml::setup() {
+MessageSourceSml::~MessageSourceSml(void){
+    delete usbReset_;
+}
+
+int32_t MessageSourceSml::setup() {
+     // setup data watchdog to detect broken USB connection
+    connect(&dataWatchdog_, &QTimer::timeout, this, &MessageSourceSml::handleWatchdog);
+    dataWatchdog_.setInterval(dataWatchdogTimeMs_);
+
+    // connect serial port
+    bool success = connectUart();
+    if(success) {
+        connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+        return 0;
+    }
+   
+    return 1;
+}
+
+bool MessageSourceSml::connectUart(bool retry)
+{
+    disconnectUart();
+
     serialPort_.setBaudRate(QSerialPort::BaudRate(baudrate_));
     serialPort_.setPortName(device_);
     if(!serialPort_.open(QIODevice::ReadOnly)) {
-        qCritical() << "Faield to open serial port" << serialPort_.errorString();
+        qCritical() << "Failed to open serial port" << device_ << ":" << serialPort_.errorString();
+        if (retry){
+            resetUsbDevice();
+            qCritical() << "Trying to reconnect after" << retryTimeMs_ << "ms";
+            QTimer::singleShot(retryTimeMs_, this, &MessageSourceSml::retryConnectUart);
+        }
         return false;
     }
 
-    connect(&serialPort_, &QSerialPort::readyRead, this, &MessageSourceSml::handleReadReady);
+    // start watchdog
+    dataWatchdog_.start();
+    connected_ = true;
+
     return true;
 }
 
+void MessageSourceSml::disconnectUart()
+{
+    if (connected_){
+        serialPort_.close();
+        connected_ = false;
+    }
+    dataWatchdog_.stop();
+    serialPort_.clearError();
+}
 
 void MessageSourceSml::handleReadReady()
 {
@@ -57,6 +107,12 @@ void MessageSourceSml::handleReadReady()
             sml_file *file = sml_file_parse((unsigned char*)(readData_.constData()) + sizeof(startPattern_), index - sizeof(startPattern_));
             int i = 0;
             QVariant value;
+
+            // data received, restart watchdog
+            if (file->messages_len > 0){
+                dataWatchdog_.start();
+            }
+            
             for (i = 0; i < file->messages_len; i++) {
                 sml_message *message = file->messages[i];
                 if (*message->message_body->tag == SML_MESSAGE_GET_LIST_RESPONSE) {
@@ -163,4 +219,17 @@ void MessageSourceSml::handleReadReady()
     }
 }
 
+void MessageSourceSml::handleWatchdog()
+{
+    qCritical() << "DATA WATCHDOG TIMEDOUT";
 
+    disconnectUart();
+    resetUsbDevice();
+    
+    QTimer::singleShot(2000, this, &MessageSourceSml::retryConnectUart);
+}
+
+void MessageSourceSml::resetUsbDevice()
+{
+    usbReset_->doReset();
+}
