@@ -17,7 +17,13 @@
  */
 #include "MessageFilterSkip.hpp"
 
-MessageFilterSkip::MessageFilterSkip(uint32_t skipCount) : m_skipCount(skipCount){
+MessageFilterSkip::MessageFilterSkip(uint32_t skipCount, QString name) : m_skipCount(skipCount), m_name(name){
+}
+
+QString MessageFilterSkip::rename(QString name) {
+  if (m_name.isEmpty())
+    return name;
+  return m_name;
 }
 
 QVariant MessageFilterSkip::filter(QVariant value) {

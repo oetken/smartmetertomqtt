@@ -22,6 +22,8 @@
 #include <IMessageFilter.hpp>
 #include <MessageFilterMean.hpp>
 #include <MessageFilterSkip.hpp>
+#include <MessageFilterDelta.hpp>
+#include <MessageFilterIgnore.hpp>
 
 SmartMeterToMqtt::SmartMeterToMqtt() : m_settings(this) {
 }
@@ -183,16 +185,23 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
 
         } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {
             auto skipCount = messageFilter["skipCount"];
-            qDebug() << skipCount;
+            auto rename = messageFilter["rename"];
+            qDebug() << skipCount << rename;
             if (skipCount.isNull()) {
                 qCritical() << "Settings: Message Filter is corrupt!";
                 return false;
             }
-            auto filter = new MessageFilterSkip(skipCount.toInt());
+            auto filter = new MessageFilterSkip(skipCount.toInt(), rename.toString());
             messageSource->addFilter(datapoint.toString(), filter);
-        }
-        else
-        {
+        }else if (type.toString().compare("Delta", Qt::CaseInsensitive) == 0) {
+            auto rename = messageFilter["rename"];
+            qDebug() << rename;
+            auto filter = new MessageFilterDelta(rename.toString());
+            messageSource->addFilter(datapoint.toString(), filter);
+        } else if (type.toString().compare("Ignore", Qt::CaseInsensitive) == 0) {
+            auto filter = new MessageFilterIgnore();
+            messageSource->addFilter(datapoint.toString(), filter);
+        } else {
             qCritical() << "Settings: Unknown Message Filter type:" << type.toString();
             return false;
         }
