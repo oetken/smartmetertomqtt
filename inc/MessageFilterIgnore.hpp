@@ -25,6 +25,7 @@ public:
     explicit MessageFilterIgnore();
     QVariant filter(QVariant value) override;
     QString  type() override { return "Ignore"; };
+    bool     wildchar() { return true; };
 };
 
 

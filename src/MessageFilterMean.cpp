@@ -48,9 +48,9 @@ QVariant MessageFilterMean::filter(QVariant value) {
     return retVal;
 }
 
-MessageFilterMean::MessageFilterMean(uint32_t sampleCount, double threshold, uint32_t postThresholdIncreaseSampleCount) :
+MessageFilterMean::MessageFilterMean(uint32_t sampleCount, double threshold, uint32_t postThresholdIncreaseSampleCount, const QString name) :
     m_sampleCount(sampleCount), m_currentSampleCount(sampleCount), m_threshold(threshold),
-    m_postThresholdIncreaseSampleCount(postThresholdIncreaseSampleCount) {
+    m_postThresholdIncreaseSampleCount(postThresholdIncreaseSampleCount), m_name(name) {
 }
 
 QVariant MessageFilterMean::getMeanValue(bool force) {
@@ -74,4 +74,10 @@ QVariant MessageFilterMean::getMeanValue(bool force) {
     }
 
     return mean;
+}
+
+QString MessageFilterMean::rename(QString name) {
+    if (m_name.isEmpty())
+      return name;
+    return m_name;
 }

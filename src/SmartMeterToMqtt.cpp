@@ -184,8 +184,9 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
             uint32_t postThresholdIncreaseSampleCountValue = 0;
             if(!postThresholdIncreaseSampleCount.isNull() && !postThresholdIncreaseSampleCount.isUndefined())
                 postThresholdIncreaseSampleCountValue = postThresholdIncreaseSampleCount.toInt();
+            auto rename = messageFilter["rename"];
             auto filter = new MessageFilterMean(windowSize.toInt(), threasholdValue,
-                                                postThresholdIncreaseSampleCountValue);
+                                                postThresholdIncreaseSampleCountValue, rename.toString());
             messageSource->addFilter(datapoint.toString(), filter);
 
         } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {

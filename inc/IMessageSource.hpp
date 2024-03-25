@@ -22,13 +22,21 @@
 #include <QVariant>
 #include "IMessageFilter.hpp"
 #include <QMultiHash>
+#include <QDebug>
 
 class IMessageSource : public QObject{
     Q_OBJECT
 public:
-    virtual void addFilter(QString datapoint, IMessageFilter * filter)
+    virtual bool addFilter(QString datapoint, IMessageFilter * filter)
     {
+        if (datapoint.endsWith("*") && !filter->wildchar() )
+        {
+            qCritical() << "Settings: Message Filter shall be installed for wildchar datapoint but not allowed by filter " + filter->type() + "!";
+            return false;
+        }
+
         m_filters.insert(datapoint, filter);
+        return true;
     }
 signals:
     void messageReceived(QString topic, QVariant value);
