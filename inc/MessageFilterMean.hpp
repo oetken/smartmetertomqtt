@@ -23,8 +23,12 @@
 class MessageFilterMean : public IMessageFilter {
 public:
     QVariant filter(QVariant value) override;
-    explicit MessageFilterMean(uint32_t sampleCount, double threshold = std::nan(""), uint32_t postThresholdIncreaseSampleCount = 0);
+    explicit MessageFilterMean( uint32_t sampleCount, 
+                                double threshold = std::nan(""), 
+                                uint32_t postThresholdIncreaseSampleCount = 0, 
+                                const QString name = QString());
     QString  type() override { return "Mean"; };
+    QString rename(QString name) override;
 private:
     QVariant getMeanValue(bool force = false);
 
@@ -33,6 +37,7 @@ private:
     double m_threshold;
     uint32_t m_postThresholdIncreaseSampleCount;
     uint32_t m_postThresholdSampleCount{};
+    QString m_name;
     QList<QVariant> m_samples;
     QVariant m_lastValue{};
 };

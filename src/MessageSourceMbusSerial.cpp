@@ -233,9 +233,8 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
         {
             auto value = children.at(i).toElement().text();
             auto name = children.at(i).nodeName();
-            QString reference = "slaveinfo/" + name;
 
-            processFilters(reference, value);
+            processFilters("slaveinfo", name , value);
         }
     }
 
@@ -249,19 +248,33 @@ void MessageSourceMbusSerial::handleXmlData(char * data)
         {
             auto value = children.at(i).toElement().text();
             auto name = children.at(i).nodeName();
-            QString reference = id + "/" + name;
 
-            processFilters(reference, value);
+            processFilters(id, name, value);
         }
     }
 }
 
-void MessageSourceMbusSerial::processFilters(const QString reference, const QString value){
+void MessageSourceMbusSerial::processFilters(const QString id, const QString name, const QString value){
+    QString reference = id + "/" + name;
+    QString search = reference;
+    bool found = false;
+
     qDebug() << "Processing MBUS value" << reference;
 
-    if(m_filters.contains(reference))
+    // match longest string first
+    if(m_filters.contains(search))
     {
-        for(auto filter : m_filters.values(reference))
+        found = true;
+    }
+    else
+    {
+        search = id + "/*";
+    }
+
+    // otherwise try wildchar
+    if(found || m_filters.contains(search))
+    {
+        for(auto filter : m_filters.values(search))
         {
             qDebug() << "Running filter" << filter->type();
             QVariant variant = filter->filter(value);

@@ -26,6 +26,7 @@ public:
     QVariant filter(QVariant value) override;
     QString rename(QString name) override;
     QString  type() override { return "Skip"; };
+     bool     wildchar() { return true; };
  
 private:
     uint32_t m_skipCount;
