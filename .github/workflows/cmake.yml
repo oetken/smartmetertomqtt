@@ -57,12 +57,13 @@ jobs:
           [ -f "$f" ] && sudo sed -i '/^Architectures:/d;/^Types: deb/{n;s/^/Architectures: amd64\n/}' "$f" || true
         done
 
-        # Add ports.ubuntu.com as the armhf source
-        cat <<'SOURCES' | sudo tee /etc/apt/sources.list.d/armhf-ports.list
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble           main restricted universe multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates   main restricted universe multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security  main restricted universe multiverse
-        SOURCES
+        # Add ports.ubuntu.com as the armhf source (printf avoids heredoc indentation issues)
+        printf 'deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse\n' | sudo tee    /etc/apt/sources.list.d/armhf-ports.list
+        printf 'deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse\n'  | sudo tee -a /etc/apt/sources.list.d/armhf-ports.list
+        printf 'deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main restricted universe multiverse\n' | sudo tee -a /etc/apt/sources.list.d/armhf-ports.list
+
+        # Remove microsoft-prod.list — it has no arch pin and breaks multi-arch apt
+        sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
 
         sudo apt update
         sudo apt install -y \
