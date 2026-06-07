@@ -85,7 +85,7 @@ jobs:
         printf 'set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)\n'                          | tee -a "$TOOLCHAIN"
         printf 'set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)\n'                           | tee -a "$TOOLCHAIN"
         printf 'set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)\n'                           | tee -a "$TOOLCHAIN"
-        printf 'set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)\n'                           | tee -a "$TOOLCHAIN"
+        printf 'set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)\\n'                           | tee -a "$TOOLCHAIN"
 
     - name: Create Build Environment
       run: |
@@ -123,6 +123,8 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/cmake/toolchain-arm32.cmake \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_INSTALL_LIBDIR=/usr/lib/arm-linux-gnueabihf \
+          -DQt6_DIR=/usr/lib/arm-linux-gnueabihf/cmake/Qt6 \
+          -DCMAKE_PREFIX_PATH=/usr/lib/arm-linux-gnueabihf/cmake \
           -DQT_HOST_PATH=/usr \
           -DQT_HOST_PATH_CMAKE_DIR=/usr/lib/x86_64-linux-gnu/cmake
         cmake --build build-cross --parallel
