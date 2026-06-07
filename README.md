@@ -35,7 +35,7 @@ Or build from source:
 Libmbus Libsml and QtMQTT:
 ```
 cd WHATEVERWORKSPACEYOUWANT
-sudo apt install -y git cmake build-essential qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make dh-exec
+sudo apt install -y git cmake build-essential qtbase5-dev cmake devscripts qtbase5-private-dev debhelper uuid-dev libqt5xmlpatterns5-dev libqt5serialport5-dev dh-make dh-exec pandoc
 git clone https://github.com/rscada/libmbus
 git clone https://github.com/volkszaehler/libsml
 git clone https://github.com/qt/qtmqtt
@@ -50,7 +50,7 @@ cd libmbus
 cd ..
 
 cd qtmqtt;
-QT_VERSION="$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')";
+QT_VERSION="$(qmake6 --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')";
 git tag -l | grep -E "${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "$(qmake --version | sed -n  's/.*version\s*\([0-9]*\.[0-9]*\.\)[0-9]*\s*.*/\1/p')[0-9]+$" | tail -n 1);
 git checkout v$QT_VERSION;
 cd .. && mv qtmqtt "qtmqtt-$QT_VERSION"; cd "qtmqtt-$QT_VERSION";

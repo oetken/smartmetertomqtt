@@ -21,12 +21,12 @@ jobs:
             base_image: "--platform=linux/arm64 debian:trixie"
             runs-on: ubuntu-24.04
 
-          - name: arm32
+          - name: armv7
             qemu_arch: armv7
             base_image: "--platform=linux/arm/v7 debian:trixie"
             runs-on: ubuntu-24.04
 
-          - name: arm6
+          - name: armv6
             qemu_arch: armv6
             base_image: "--platform=linux/arm/v6 debian:trixie"
             runs-on: ubuntu-24.04
