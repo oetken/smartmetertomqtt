@@ -3,91 +3,131 @@ name: CMake
 on: [push]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-#    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86_64
+            runs-on: ubuntu-24.04
+            cross: false
+            cmake_extra: ""
+            deb_arch: amd64
+
+          - name: arm64
+            runs-on: ubuntu-24.04-arm
+            cross: false
+            cmake_extra: ""
+            deb_arch: arm64
+
+          - name: arm32
+            runs-on: ubuntu-24.04
+            cross: true
+            cmake_extra: "-DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchain-arm32.cmake"
+            deb_arch: armhf
+
+    runs-on: ${{ matrix.runs-on }}
+    name: Build (${{ matrix.name }})
 
     steps:
     - uses: actions/checkout@v4
-#    - name: Install Qt
-#      uses: jurplel/install-qt-action@v2
 
     - name: Prepare Environment
       shell: bash
-      working-directory: ${{github.workspace}}
-      run: sudo apt update ; sudo apt install -y git cmake build-essential qt6-base-dev qt6-tools-dev qt6-base-private-dev devscripts debhelper uuid-dev dh-make qt6-serialport-dev dh-exec pandoc
+      run: |
+        sudo apt update
+        sudo apt install -y git cmake build-essential \
+          qt6-base-dev qt6-tools-dev qt6-base-private-dev \
+          devscripts debhelper uuid-dev dh-make qt6-serialport-dev dh-exec pandoc
+
+    - name: Prepare Cross-Compile Environment (arm32 only)
+      if: matrix.cross
+      shell: bash
+      run: |
+        sudo dpkg --add-architecture armhf
+        sudo sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+        echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+        echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
+        sudo apt update
+        sudo apt install -y \
+          gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+          libqt6core6t64:armhf libqt6network6:armhf libqt6serialport6:armhf \
+          qt6-base-dev:armhf qt6-serialport-dev:armhf \
+          libssl-dev:armhf libudev-dev:armhf uuid-dev:armhf
+        mkdir -p $GITHUB_WORKSPACE/cmake
+        cat > $GITHUB_WORKSPACE/cmake/toolchain-arm32.cmake << 'EOF'
+        set(CMAKE_SYSTEM_NAME Linux)
+        set(CMAKE_SYSTEM_PROCESSOR arm)
+        set(CMAKE_C_COMPILER   arm-linux-gnueabihf-gcc)
+        set(CMAKE_CXX_COMPILER arm-linux-gnueabihf-g++)
+        set(CMAKE_FIND_ROOT_PATH /usr/arm-linux-gnueabihf)
+        set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+        set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+        set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+        EOF
 
     - name: Create Build Environment
-      # Some projects don't allow in-source building, so create a separate build directory
-      # We'll use this as our working directory for all subsequent commands
       run: cmake -E make_directory ${{github.workspace}}/build
 
     - name: Build QtMqtt
       shell: bash
       working-directory: ${{github.workspace}}
       run: |
-           git clone https://github.com/qt/qtmqtt
-           cd qtmqtt
-           QT_VERSION="$(qt6-qmake --version 2>/dev/null | sed -n 's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')"
-           git tag -l | grep -qE "^v${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
-           git checkout "v${QT_VERSION}"
-           cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
-           cmake --build build --parallel
-           sudo cmake --install build
+        git clone https://github.com/qt/qtmqtt
+        cd qtmqtt
+        QT_VERSION="$(qt6-qmake --version 2>/dev/null | sed -n 's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')"
+        git tag -l | grep -qE "^v${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
+        git checkout "v${QT_VERSION}"
+        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr ${{ matrix.cross && '-DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchain-arm32.cmake' || '' }}
+        cmake --build build --parallel
+        sudo cmake --install build
 
     - name: Build LibSml
       shell: bash
       working-directory: ${{github.workspace}}
-      run: git clone https://github.com/volkszaehler/libsml;
-           cd libsml;
-           sed -i 's/.*\s-C\stest$//g' Makefile;
-           sed -i 's/.*\s-C\sexamples$//g' Makefile;
-           dpkg-buildpackage -b --no-sign;
-           sudo dpkg -i ../*.deb
+      run: |
+        git clone https://github.com/volkszaehler/libsml
+        cd libsml
+        sed -i 's/.*\s-C\stest$//g' Makefile
+        sed -i 's/.*\s-C\sexamples$//g' Makefile
+        dpkg-buildpackage -b --no-sign -a${{ matrix.deb_arch }}
+        sudo dpkg -i --force-architecture ../*.deb
+
     - name: Build LibMBus
       shell: bash
       working-directory: ${{github.workspace}}
-      run: git clone https://github.com/rscada/libmbus;
-           cd libmbus;
-           ./build-deb.sh;
-           sudo dpkg -i ../*.deb
+      run: |
+        git clone https://github.com/rscada/libmbus
+        cd libmbus
+        ./build-deb.sh
+        sudo dpkg -i --force-architecture ../*.deb
 
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE ${{ matrix.cmake_extra }}
 
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash
-      # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . --config $BUILD_TYPE
+      run: cmake --build . --config $BUILD_TYPE --parallel
 
     - name: Package
       working-directory: ${{github.workspace}}/build
       shell: bash
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: cpack
 
     - name: Test
+      if: ${{ !matrix.cross }}
       working-directory: ${{github.workspace}}/build
       shell: bash
       run: ctest -C $BUILD_TYPE --output-on-failure || true
 
-    - name: 'Upload Artifact'
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Files
-        path: |
-          ${{github.workspace}}/build/*.deb
-          ${{github.workspace}}/*.deb
-        #retention-days: 365
+        name: SmartMeterToMqtt-${{ matrix.name }}
+        path: ${{github.workspace}}/build/*.deb
