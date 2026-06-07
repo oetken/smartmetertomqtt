@@ -157,3 +157,74 @@ jobs:
       with:
         name: SmartMeterToMqtt-arm32
         path: ${{github.workspace}}/artifacts/*.deb
+
+  # ── ARMv6 via QEMU (Debian Bookworm — armv6 has no Ubuntu support) ───────────
+  build-arm6:
+    name: Build (arm6)
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build inside armv6 container
+      uses: uraimo/run-on-arch-action@v3
+      with:
+        arch: armv6
+        distro: bookworm
+        githubToken: ${{ github.token }}
+        dockerRunArgs: |
+          --volume "${{github.workspace}}:/workspace"
+        install: |
+          apt update
+          apt install -y git cmake build-essential \
+            qt6-base-dev qt6-tools-dev qt6-base-private-dev \
+            devscripts debhelper uuid-dev dh-make qt6-serialport-dev dh-exec pandoc
+        run: |
+          set -e
+          cd /workspace
+
+          # QtMqtt
+          git clone https://github.com/qt/qtmqtt
+          cd qtmqtt
+          QT_VERSION="$(qmake6 --version 2>/dev/null | sed -n 's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')"
+          git tag -l | grep -qE "^v${QT_VERSION}$" || \
+            QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
+          git checkout "v${QT_VERSION}"
+          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel
+          cmake --install build
+          dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
+          dpkg-buildpackage -b --no-sign || true
+          mkdir -p /workspace/artifacts
+          find /workspace -maxdepth 1 -name '*.deb' -exec cp {} /workspace/artifacts/ \;
+          cd /workspace
+
+          # LibSml
+          git clone https://github.com/volkszaehler/libsml
+          cd libsml
+          sed -i 's/.*\s-C\stest$//g' Makefile
+          sed -i 's/.*\s-C\sexamples$//g' Makefile
+          dpkg-buildpackage -b --no-sign
+          dpkg -i ../*.deb
+          cp ../*.deb /workspace/artifacts/
+          cd /workspace
+
+          # LibMBus
+          git clone https://github.com/rscada/libmbus
+          cd libmbus
+          ./build-deb.sh
+          dpkg -i ../*.deb
+          cp ../*.deb /workspace/artifacts/
+          cd /workspace
+
+          # SmartMeterToMqtt
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel
+          cmake --build build --target package
+          cp build/*.deb /workspace/artifacts/
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SmartMeterToMqtt-arm6
+        path: ${{github.workspace}}/artifacts/*.deb
