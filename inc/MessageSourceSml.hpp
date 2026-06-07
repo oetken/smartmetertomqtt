@@ -28,7 +28,8 @@ class MessageSourceSml : public IMessageSource
 {
     Q_OBJECT
 public:
-    MessageSourceSml(QString topicBase, QString device, uint32_t baudrate);
+    MessageSourceSml(QString topicBase, QString device, uint32_t baudrate,
+                     QString deviceName = QString(), QString deviceId = QString());
     virtual ~MessageSourceSml(void);
     int32_t setup();
 private:

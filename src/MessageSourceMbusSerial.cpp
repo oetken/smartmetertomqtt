@@ -64,9 +64,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QDebug>
 #include <QtXml>
 #include "mbus/mbus.h"
-#include <QtXmlPatterns/QXmlQuery>
 
-MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec) : m_topic(topic), m_device(device), m_addresses(addresses), m_baudrate(baudrate), m_pollIntervalSec(pollIntervalSec){
+MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec,
+                                                 QString deviceName, QString deviceId)
+    : m_topic(topic), m_device(device), m_addresses(addresses), m_baudrate(baudrate), m_pollIntervalSec(pollIntervalSec)
+{
+    m_sourceType = "MbusSerial";
+    m_deviceName = deviceName.isEmpty() ? topic : deviceName;
+    m_deviceId   = deviceId.isEmpty()   ? topic : deviceId;
     m_timer.setInterval(m_pollIntervalSec * 1000);
     connect(&m_timer, &QTimer::timeout, this, &MessageSourceMbusSerial::readData);
     m_timer.start();
@@ -285,21 +290,33 @@ void MessageSourceMbusSerial::processFilters(const QString id, const QString nam
                 {
                     for(QVariant element : variant.toList())
                     {
-                        emit messageReceived(m_topic + "/" + string, variant);
-                        qDebug() << m_topic + "/" + string + "/" + variant.toString();
-
-                        emit messageReceived(m_topic + "/" + string, element);
+                        QString fullTopic = m_topic + "/" + string;
+                        if(!m_discoveredEntities.contains(fullTopic)) {
+                            m_discoveredEntities.insert(fullTopic);
+                            emit entityDiscovered(fullTopic, string, m_deviceId, m_deviceName, m_sourceType);
+                        }
+                        emit messageReceived(fullTopic, element);
                         qDebug() << "filtered" << string << element;
                     }
                 } else {
-                    emit messageReceived(m_topic + "/" + string, variant);
+                    QString fullTopic = m_topic + "/" + string;
+                    if(!m_discoveredEntities.contains(fullTopic)) {
+                        m_discoveredEntities.insert(fullTopic);
+                        emit entityDiscovered(fullTopic, string, m_deviceId, m_deviceName, m_sourceType);
+                    }
+                    emit messageReceived(fullTopic, variant);
                     qDebug() << m_topic + "/" + string + "/" + variant.toString();
                 }
             }
         }
     } else {
-        qDebug() << m_topic + "/" + reference + "/" + value;
-        emit messageReceived(m_topic + "/" + reference, value);
+        QString fullTopic = m_topic + "/" + reference;
+        if(!m_discoveredEntities.contains(fullTopic)) {
+            m_discoveredEntities.insert(fullTopic);
+            emit entityDiscovered(fullTopic, reference, m_deviceId, m_deviceName, m_sourceType);
+        }
+        qDebug() << fullTopic + "/" + value;
+        emit messageReceived(fullTopic, value);
     }
 }
 

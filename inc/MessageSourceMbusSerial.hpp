@@ -24,7 +24,8 @@
 
 class MessageSourceMbusSerial : public IMessageSource{
 public:
-    explicit MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec = 1);
+    explicit MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec = 1,
+                                     QString deviceName = QString(), QString deviceId = QString());
     ~MessageSourceMbusSerial() override;
     int32_t setup(bool debug = false);
     int32_t poll();

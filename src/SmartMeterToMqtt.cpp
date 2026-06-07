@@ -19,6 +19,7 @@
 #include "MessageSourceSml.hpp"
 #include "MessageSourceMbusSerial.hpp"
 #include <QDebug>
+#include <QRegularExpression>
 #include <IMessageFilter.hpp>
 #include <MessageFilterMean.hpp>
 #include <MessageFilterSkip.hpp>
@@ -40,31 +41,32 @@ bool SmartMeterToMqtt::setup() {
         qCritical() << "Failed to open settings.";
         return false;
     }
-    auto hostname = m_settings["MQTT"]["hostname"];
+    const QJsonObject mqtt = m_settings["MQTT"].toObject();
+    auto hostname = mqtt[QLatin1String("hostname")];
     if(hostname.isNull())
     {
         qCritical() << "Hostname must be supplied!";
         return false;
     }
-    auto port = m_settings["MQTT"]["port"];
+    auto port = mqtt[QLatin1String("port")];
     if(port.isNull())
     {
         qCritical() << "Port must be supplied!";
         return false;
     }
-    auto user = m_settings["MQTT"]["user"];
+    auto user = mqtt[QLatin1String("user")];
     if(user.isNull())
     {
         qCritical() << "User must be supplied!";
         return false;
     }
-    auto password = m_settings["MQTT"]["password"];
+    auto password = mqtt[QLatin1String("password")];
     if(password.isNull())
     {
         qCritical() << "Password must be supplied!";
         return false;
     }
-    auto clientid = m_settings["MQTT"]["clientid"];
+    auto clientid = mqtt[QLatin1String("clientId")];
     if(clientid.isNull())
     {
         qCritical() << "ClientId must be supplied!";
@@ -80,6 +82,10 @@ bool SmartMeterToMqtt::setup() {
         qCritical() << "Failed to setup MQTT client!";
         return false;
     }
+    auto haDiscoveryPrefix = mqtt[QLatin1String("haDiscoveryPrefix")];
+    if(!haDiscoveryPrefix.isNull())
+        m_haDiscoveryPrefix = haDiscoveryPrefix.toString();
+
     if(!getMessageSources())
     {
         qCritical() << "Failed to setup MessageSources!";
@@ -91,27 +97,31 @@ bool SmartMeterToMqtt::setup() {
 bool SmartMeterToMqtt::getMessageSources()
 {
     auto messageSources = m_settings["MessageSources"].toArray();
-    foreach (const auto & messageSource, messageSources) {
+    foreach (const auto & messageSourceVal, messageSources) {
+        const QJsonObject messageSource = messageSourceVal.toObject();
         int32_t rc = -1;
         IMessageSource * iMessageSource = nullptr;
-        auto type = messageSource["type"];
-        auto topic = messageSource["topic"];
-        auto device = messageSource["device"];
-        auto baudrate = messageSource["baudrate"];
+        auto type = messageSource[QLatin1String("type")];
+        auto topic = messageSource[QLatin1String("topic")];
+        auto device = messageSource[QLatin1String("device")];
+        auto baudrate = messageSource[QLatin1String("baudrate")];
         if(type.isNull() || topic.isNull() || device.isNull() || baudrate.isNull())
         {
             qCritical() << "Settings: Message source is corrupt!";
             return false;
         }
+        auto deviceName = messageSource[QLatin1String("deviceName")];
+        auto deviceId   = messageSource[QLatin1String("deviceId")];
+
         if(type.toString() == "MbusSerial")
         {
-            auto addressesString = messageSource["addresses"];
+            auto addressesString = messageSource[QLatin1String("addresses")];
             if(addressesString.isNull())
             {
                 qCritical() << "Settings: Message source is corrupt!";
                 return false;
             }
-            auto pollIntervalSec = messageSource["pollIntervalSec"];
+            auto pollIntervalSec = messageSource[QLatin1String("pollIntervalSec")];
             if(pollIntervalSec.isNull())
             {
                 qCritical() << "Settings: Message source is corrupt!";
@@ -122,14 +132,16 @@ bool SmartMeterToMqtt::getMessageSources()
             {
                 addresses.append(address.trimmed());
             }
-            auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt(), pollIntervalSec.toInt());
+            auto ms = new MessageSourceMbusSerial(topic.toString(), device.toString(), addresses, baudrate.toInt(), pollIntervalSec.toInt(),
+                                                  deviceName.toString(), deviceId.toString());
             rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
         }
         else if(type == "Sml")
         {
-            auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt());
+            auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt(),
+                                           deviceName.toString(), deviceId.toString());
             rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
@@ -143,7 +155,7 @@ bool SmartMeterToMqtt::getMessageSources()
             qCritical() << "Settings: setting up message source" << type << "FAILED with" << rc;
             return false;
         }
-        auto messageFilters = messageSource["MessageFilters"].toArray();
+        auto messageFilters = messageSource[QLatin1String("MessageFilters")].toArray();
         if(!getFilters(messageFilters, iMessageSource))
         {
             return false;
@@ -158,40 +170,41 @@ bool SmartMeterToMqtt::getMessageSources()
 }
 
 bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *messageSource) {
-    foreach (const auto &messageFilter, messageFilters) {
-            auto type = messageFilter["type"];
+    foreach (const auto &messageFilterVal, messageFilters) {
+        const QJsonObject messageFilter = messageFilterVal.toObject();
+            auto type = messageFilter[QLatin1String("type")];
         if (type.isNull()) {
             qCritical() << "Settings: Message Filter is corrupt!";
             return false;
         }
-        auto datapoint = messageFilter["datapoint"];
+        auto datapoint = messageFilter[QLatin1String("datapoint")];
         if (datapoint.isNull()) {
             qCritical() << "Settings: Message Filter is corrupt!";
             return false;
         }
         qDebug() << type << datapoint;
         if (type.toString().compare("Mean", Qt::CaseInsensitive) == 0) {
-            auto windowSize = messageFilter["windowSize"];
+            auto windowSize = messageFilter[QLatin1String("windowSize")];
             if (windowSize.isNull()) {
                 qCritical() << "Settings: Message Filter is corrupt!";
                 return false;
             }
-            auto threshold = messageFilter["threshold"];
+            auto threshold = messageFilter[QLatin1String("threshold")];
             double threasholdValue = std::nan("");
             if(!threshold.isNull() && !threshold.isUndefined())
                 threasholdValue = threshold.toDouble();
-            auto postThresholdIncreaseSampleCount = messageFilter["postThresholdIncreaseSampleCount"];
+            auto postThresholdIncreaseSampleCount = messageFilter[QLatin1String("postThresholdIncreaseSampleCount")];
             uint32_t postThresholdIncreaseSampleCountValue = 0;
             if(!postThresholdIncreaseSampleCount.isNull() && !postThresholdIncreaseSampleCount.isUndefined())
                 postThresholdIncreaseSampleCountValue = postThresholdIncreaseSampleCount.toInt();
-            auto rename = messageFilter["rename"];
+            auto rename = messageFilter[QLatin1String("rename")];
             auto filter = new MessageFilterMean(windowSize.toInt(), threasholdValue,
                                                 postThresholdIncreaseSampleCountValue, rename.toString());
             messageSource->addFilter(datapoint.toString(), filter);
 
         } else if (type.toString().compare("Skip", Qt::CaseInsensitive) == 0) {
-            auto skipCount = messageFilter["skipCount"];
-            auto rename = messageFilter["rename"];
+            auto skipCount = messageFilter[QLatin1String("skipCount")];
+            auto rename = messageFilter[QLatin1String("rename")];
             qDebug() << skipCount << rename;
             if (skipCount.isNull()) {
                 qCritical() << "Settings: Message Filter is corrupt!";
@@ -200,7 +213,7 @@ bool SmartMeterToMqtt::getFilters(QJsonArray & messageFilters, IMessageSource *m
             auto filter = new MessageFilterSkip(skipCount.toInt(), rename.toString());
             messageSource->addFilter(datapoint.toString(), filter);
         }else if (type.toString().compare("Delta", Qt::CaseInsensitive) == 0) {
-            auto rename = messageFilter["rename"];
+            auto rename = messageFilter[QLatin1String("rename")];
             qDebug() << rename;
             auto filter = new MessageFilterDelta(rename.toString());
             messageSource->addFilter(datapoint.toString(), filter);
@@ -275,7 +288,7 @@ bool SmartMeterToMqtt::setupClient(QString hostname, uint16_t port, QString user
 
 bool SmartMeterToMqtt::publishMqttMessage(QString topic, QVariant message, bool retain) {
     QString messageString = QString();
-    if (message.type() == QVariant::Double){
+    if (message.typeId() == QMetaType::Double){
         messageString = QString("%1").arg(message.value<double>(), 0, 'g', 12);
     } else {
         messageString = message.toString();
@@ -305,9 +318,48 @@ void SmartMeterToMqtt::timerTimedout() {
 
 bool SmartMeterToMqtt::addMessageSource(IMessageSource *messageSource) {
     connect(messageSource, &IMessageSource::messageReceived, this, &SmartMeterToMqtt::messageReceived);
+    connect(messageSource, &IMessageSource::entityDiscovered, this, &SmartMeterToMqtt::entityDiscovered);
     return true;
 }
 
 void SmartMeterToMqtt::messageReceived(QString topic, QVariant message) {
     publishMqttMessage(topic, message, true);
+}
+
+void SmartMeterToMqtt::entityDiscovered(QString stateTopic, QString entityId, QString deviceId, QString deviceName, QString sourceType) {
+    publishHaDiscovery(stateTopic, entityId, deviceId, deviceName, sourceType);
+}
+
+bool SmartMeterToMqtt::publishHaDiscovery(const QString &stateTopic, const QString &entityId,
+                                           const QString &deviceId, const QString &deviceName,
+                                           const QString &sourceType)
+{
+    // Build a unique_id by combining deviceId and entityId (sanitised)
+    QString sanitizedEntity = entityId;
+    sanitizedEntity.replace(QRegularExpression("[^a-zA-Z0-9_]"), "_");
+    QString sanitizedDevice = deviceId;
+    sanitizedDevice.replace(QRegularExpression("[^a-zA-Z0-9_]"), "_");
+
+    QString uniqueId = sanitizedDevice + "_" + sanitizedEntity;
+
+    // Discovery topic: homeassistant/sensor/<unique_id>/config
+    QString discoveryTopic = m_haDiscoveryPrefix + "/sensor/" + uniqueId + "/config";
+
+    // Device object – all entities for the same deviceId share this block
+    QJsonObject device;
+    device["identifiers"] = QJsonArray{ deviceId };
+    device["name"]        = deviceName;
+    device["model"]       = sourceType;
+    device["manufacturer"] = "SmartMeterToMqtt";
+
+    // Sensor config payload
+    QJsonObject payload;
+    payload["name"]        = entityId;
+    payload["unique_id"]   = uniqueId;
+    payload["state_topic"] = stateTopic;
+    payload["device"]      = device;
+
+    QByteArray payloadBytes = QJsonDocument(payload).toJson(QJsonDocument::Compact);
+    qDebug() << "Publishing HA discovery:" << discoveryTopic;
+    return (m_client->publish(discoveryTopic, payloadBytes, 0, true) == -1);
 }

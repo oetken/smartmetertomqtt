@@ -32,8 +32,13 @@
 #include <libudev.h>
 #endif
 
-MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate) : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
+MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate,
+                                   QString deviceName, QString deviceId)
+    : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
 {
+    m_sourceType = "Sml";
+    m_deviceName = deviceName.isEmpty() ? topicBase : deviceName;
+    m_deviceId   = deviceId.isEmpty()   ? topicBase : deviceId;
     usbReset_ = new UsbReset(device);
 }
 
@@ -190,11 +195,21 @@ void MessageSourceSml::handleReadReady()
                                 {
                                     for(QVariant element : variant.toList())
                                     {
-                                        emit messageReceived(topicBase_ + "/" + string, element);
+                                        QString fullTopic = topicBase_ + "/" + string;
+                                        if(!m_discoveredEntities.contains(fullTopic)) {
+                                            m_discoveredEntities.insert(fullTopic);
+                                            emit entityDiscovered(fullTopic, string, m_deviceId, m_deviceName, m_sourceType);
+                                        }
+                                        emit messageReceived(fullTopic, element);
                                         qDebug() << "filtered" << string << element;
                                     }
                                 } else {
-                                    emit messageReceived(topicBase_ + "/" + string, variant);
+                                    QString fullTopic = topicBase_ + "/" + string;
+                                    if(!m_discoveredEntities.contains(fullTopic)) {
+                                        m_discoveredEntities.insert(fullTopic);
+                                        emit entityDiscovered(fullTopic, string, m_deviceId, m_deviceName, m_sourceType);
+                                    }
+                                    emit messageReceived(fullTopic, variant);
                                     qDebug() << "filtered" << string << variant;
                                 }
                             }
@@ -204,7 +219,12 @@ void MessageSourceSml::handleReadReady()
                             // }
                         }
                       } else {
-                          emit messageReceived(topicBase_ + "/" + name, value);
+                          QString fullTopic = topicBase_ + "/" + name;
+                          if(!m_discoveredEntities.contains(fullTopic)) {
+                              m_discoveredEntities.insert(fullTopic);
+                              emit entityDiscovered(fullTopic, name, m_deviceId, m_deviceName, m_sourceType);
+                          }
+                          emit messageReceived(fullTopic, value);
                           qDebug() << name << value;
                       }
                    }

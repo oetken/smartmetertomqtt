@@ -22,6 +22,7 @@
 #include <QVariant>
 #include "IMessageFilter.hpp"
 #include <QMultiHash>
+#include <QSet>
 #include <QDebug>
 
 class IMessageSource : public QObject{
@@ -38,11 +39,26 @@ public:
         m_filters.insert(datapoint, filter);
         return true;
     }
+
+    void setDeviceName(const QString &name) { m_deviceName = name; }
+    QString deviceName() const { return m_deviceName; }
+
+    void setDeviceId(const QString &id) { m_deviceId = id; }
+    QString deviceId() const { return m_deviceId; }
+
+    QString sourceType() const { return m_sourceType; }
+
 signals:
     void messageReceived(QString topic, QVariant value);
+    // Emitted the first time a datapoint/topic is seen; used for HA discovery
+    void entityDiscovered(QString stateTopic, QString entityId, QString deviceId, QString deviceName, QString sourceType);
 
 protected:
     QMultiHash<QString, IMessageFilter *> m_filters;
+    QString m_deviceName;
+    QString m_deviceId;
+    QString m_sourceType;
+    QSet<QString> m_discoveredEntities;
 };
 
 

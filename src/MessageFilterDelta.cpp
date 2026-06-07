@@ -39,10 +39,10 @@ QVariant MessageFilterDelta::filter(QVariant value) {
       if (!m_lastValue.isNull() && m_lastValue.canConvert<double>())
       {
         double old_val = m_lastValue.value<double>();
-        delta.setValue<double>(new_val - old_val);
+        delta.setValue(double(new_val - old_val));
       }
 
-      m_lastValue.setValue<double>(new_val);
+      m_lastValue.setValue(double(new_val));
     }
     
     return delta;

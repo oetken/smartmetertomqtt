@@ -22,6 +22,9 @@
 #include <QtCore/QDateTime>
 #include <QtMqtt/QMqttClient>
 #include <QSettings>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
 #include <mbus/mbus.h>
 #include "IMessageSource.hpp"
 #include "SmartMeterSettings.hpp"
@@ -36,12 +39,16 @@ public:
     bool setup();
     bool setupClient(QString hostname, uint16_t port, QString user, QString password, QString clientId = "", uint32_t keepAliveTime = 10);
     bool publishMqttMessage(QString topic, QVariant message, bool retain = true);
+    bool publishHaDiscovery(const QString &stateTopic, const QString &entityId,
+                            const QString &deviceId, const QString &deviceName,
+                            const QString &sourceType);
     bool getMessageSources();
 private:
     bool getFilters(QJsonArray &messageFilters, IMessageSource *filters);
 
     SmartMeterSettings m_settings;
     QString m_filename = "/home/z001131e/.config/SmartHomeTools/SmartMeterToMqtt.json";
+    QString m_haDiscoveryPrefix = "homeassistant";
     QMqttClient * m_client{};
     QTimer m_timer;
     QTimer m_keepAliveSendTimer;
@@ -51,6 +58,7 @@ protected slots:
     void brokerDisconnected();
     void timerTimedout();
     void messageReceived(QString topic, QVariant message);
+    void entityDiscovered(QString stateTopic, QString entityId, QString deviceId, QString deviceName, QString sourceType);
 };
 
 

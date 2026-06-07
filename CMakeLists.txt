@@ -18,13 +18,13 @@
 cmake_policy(SET CMP0071 NEW)
 cmake_policy(SET CMP0011 NEW)
 CMAKE_MINIMUM_REQUIRED (VERSION 3.13)
-PROJECT(SmartMeterToMqtt)
+PROJECT(SmartMeterToMqtt VERSION 1.0.0)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt5 COMPONENTS Mqtt Sql Xml XmlPatterns SerialPort Network REQUIRED)
+find_package(Qt6 COMPONENTS Mqtt Sql Xml SerialPort Network REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
@@ -50,7 +50,7 @@ ADD_EXECUTABLE(SmartMeterToMqtt ${SmartMeterToMqtt_resources} ${SmartMeterToMqtt
 
 set_target_properties(SmartMeterToMqtt PROPERTIES FOLDER "apps")
 target_include_directories(SmartMeterToMqtt PUBLIC "${PROJECT_SOURCE_DIR}/inc")
-TARGET_LINK_LIBRARIES(SmartMeterToMqtt ${EXTRA_LIBS} Qt5::XmlPatterns Qt5::SerialPort Qt5::Mqtt Qt5::Sql Qt5::Network libmbus.so libsml.so Qt5::Xml uuid udev)
+TARGET_LINK_LIBRARIES(SmartMeterToMqtt ${EXTRA_LIBS} Qt6::SerialPort Qt6::Mqtt Qt6::Sql Qt6::Network libmbus.so libsml.so Qt6::Xml uuid udev)
 
 install(TARGETS SmartMeterToMqtt 
         RUNTIME DESTINATION bin
@@ -65,6 +65,10 @@ install(FILES ${PROJECT_SOURCE_DIR}/etc/smartmeter.json.default
 )
 
 SET(CPACK_GENERATOR "DEB")
+SET(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+SET(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+SET(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+SET(CPACK_PACKAGE_VERSION       ${PROJECT_VERSION})
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Enno") #required
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/package/postinst;${CMAKE_CURRENT_SOURCE_DIR}/package/preinst")
 INCLUDE(CPack)
