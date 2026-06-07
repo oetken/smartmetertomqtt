@@ -68,7 +68,7 @@ jobs:
         sudo apt update
         sudo apt install -y \
           gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-          libqt6core6t64:armhf libqt6network6:armhf libqt6serialport6:armhf \
+          libqt6core6t64:armhf libqt6network6t64:armhf libqt6serialport6t64:armhf \
           qt6-base-dev:armhf qt6-serialport-dev:armhf \
           libssl-dev:armhf libudev-dev:armhf uuid-dev:armhf
 
@@ -85,7 +85,9 @@ jobs:
         EOF
 
     - name: Create Build Environment
-      run: cmake -E make_directory ${{github.workspace}}/build
+      run: |
+        cmake -E make_directory ${{github.workspace}}/build
+        mkdir -p ${{github.workspace}}/artifacts
 
     - name: Build QtMqtt
       shell: bash
@@ -110,6 +112,9 @@ jobs:
         sed -i 's/.*\s-C\sexamples$//g' Makefile
         dpkg-buildpackage -b --no-sign -a${{ matrix.deb_arch }}
         sudo dpkg -i --force-architecture ../*.deb
+        # collect debs for upload
+        mkdir -p ${{github.workspace}}/artifacts
+        cp ../*.deb ${{github.workspace}}/artifacts/
 
     - name: Build LibMBus
       shell: bash
@@ -119,6 +124,17 @@ jobs:
         cd libmbus
         ./build-deb.sh
         sudo dpkg -i --force-architecture ../*.deb
+        # collect debs for upload
+        cp ../*.deb ${{github.workspace}}/artifacts/
+
+    - name: Build QtMqtt deb
+      shell: bash
+      working-directory: ${{github.workspace}}/qtmqtt-*
+      run: |
+        # produce an installable deb from the already-built tree
+        dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
+        dpkg-buildpackage -b --no-sign -a${{ matrix.deb_arch }} || true
+        find ${{github.workspace}} -maxdepth 1 -name "*.deb" -exec cp {} ${{github.workspace}}/artifacts/ \;
 
     - name: Configure CMake
       shell: bash
@@ -133,7 +149,9 @@ jobs:
     - name: Package
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: cpack
+      run: |
+        cpack
+        cp ${{github.workspace}}/build/*.deb ${{github.workspace}}/artifacts/
 
     - name: Test
       if: ${{ !matrix.cross }}
@@ -141,8 +159,8 @@ jobs:
       shell: bash
       run: ctest -C $BUILD_TYPE --output-on-failure || true
 
-    - name: Upload Artifact
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: SmartMeterToMqtt-${{ matrix.name }}
-        path: ${{github.workspace}}/build/*.deb
+        path: ${{github.workspace}}/artifacts/*.deb
