@@ -68,7 +68,7 @@ jobs:
         sudo apt update
         sudo apt install -y \
           gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-          libqt6core6t64:armhf libqt6network6t64:armhf libqt6serialport6t64:armhf \
+          libqt6core6t64:armhf libqt6network6t64:armhf \
           qt6-base-dev:armhf qt6-serialport-dev:armhf \
           libssl-dev:armhf libudev-dev:armhf uuid-dev:armhf
 
@@ -101,6 +101,10 @@ jobs:
         cmake -B build -DCMAKE_INSTALL_PREFIX=/usr ${{ matrix.cross && '-DCMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/cmake/toolchain-arm32.cmake' || '' }}
         cmake --build build --parallel
         sudo cmake --install build
+        # package and collect deb
+        dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
+        dpkg-buildpackage -b --no-sign -a${{ matrix.deb_arch }} || true
+        find ${{github.workspace}} -maxdepth 1 -name '*.deb' -exec cp {} ${{github.workspace}}/artifacts/ \;
 
     - name: Build LibSml
       shell: bash
@@ -126,15 +130,6 @@ jobs:
         sudo dpkg -i --force-architecture ../*.deb
         # collect debs for upload
         cp ../*.deb ${{github.workspace}}/artifacts/
-
-    - name: Build QtMqtt deb
-      shell: bash
-      working-directory: ${{github.workspace}}/qtmqtt-*
-      run: |
-        # produce an installable deb from the already-built tree
-        dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
-        dpkg-buildpackage -b --no-sign -a${{ matrix.deb_arch }} || true
-        find ${{github.workspace}} -maxdepth 1 -name "*.deb" -exec cp {} ${{github.workspace}}/artifacts/ \;
 
     - name: Configure CMake
       shell: bash
