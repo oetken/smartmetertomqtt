@@ -13,20 +13,20 @@ jobs:
       matrix:
         include:
           - name: x86_64
-            runs-on: ubuntu-24.04
             qemu_arch: none
+            runs-on: ubuntu-24.04
 
           - name: arm64
-            runs-on: ubuntu-24.04-arm
-            qemu_arch: none
+            qemu_arch: aarch64
+            runs-on: ubuntu-24.04
 
           - name: arm32
-            runs-on: ubuntu-24.04
             qemu_arch: armv7
+            runs-on: ubuntu-24.04
 
           - name: arm6
-            runs-on: ubuntu-24.04
             qemu_arch: armv6
+            runs-on: ubuntu-24.04
 
     runs-on: ${{ matrix.runs-on }}
     name: Build (${{ matrix.name }})
@@ -34,44 +34,56 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    # ── Native builds (x86_64, arm64) ────────────────────────────────────────
-    - name: Build (native)
+    # ── Native x86_64 ─────────────────────────────────────────────────────────
+    - name: Install dependencies (x86_64 native)
       if: matrix.qemu_arch == 'none'
-      working-directory: ${{github.workspace}}
       run: |
-        set -e
         sudo apt update
         sudo apt install -y git cmake build-essential \
           qt6-base-dev qt6-tools-dev qt6-base-private-dev \
           devscripts debhelper uuid-dev dh-make qt6-serialport-dev dh-exec pandoc
-        mkdir -p artifacts
 
-        git clone https://github.com/qt/qtmqtt && cd qtmqtt
+    - name: Build (x86_64 native)
+      if: matrix.qemu_arch == 'none'
+      run: |
+        set -e
+        WS=$GITHUB_WORKSPACE
+        mkdir -p "$WS/artifacts"
+
+        git clone https://github.com/qt/qtmqtt "$WS/qtmqtt"
+        cd "$WS/qtmqtt"
         QT_VERSION="$(qmake6 --version 2>/dev/null | sed -n 's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')"
-        git tag -l | grep -qE "^v${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
+        git tag -l | grep -qE "^v${QT_VERSION}$" || \
+          QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
         git checkout "v${QT_VERSION}"
-        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr && cmake --build build --parallel && sudo cmake --install build
+        cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+        cmake --build build --parallel
+        sudo cmake --install build
         dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
         dpkg-buildpackage -b --no-sign || true
-        find ${{github.workspace}} -maxdepth 1 -name '*.deb' -exec cp {} ${{github.workspace}}/artifacts/ \;
-        cd ${{github.workspace}}
+        find "$WS" -maxdepth 1 -name '*.deb' -exec cp {} "$WS/artifacts/" \;
 
-        git clone https://github.com/volkszaehler/libsml && cd libsml
-        sed -i 's/.*\s-C\stest$//g' Makefile && sed -i 's/.*\s-C\sexamples$//g' Makefile
-        dpkg-buildpackage -b --no-sign && sudo dpkg -i ../*.deb && cp ../*.deb ${{github.workspace}}/artifacts/
-        cd ${{github.workspace}}
+        git clone https://github.com/volkszaehler/libsml "$WS/libsml"
+        cd "$WS/libsml"
+        sed -i 's/.*\s-C\stest$//g' Makefile
+        sed -i 's/.*\s-C\sexamples$//g' Makefile
+        dpkg-buildpackage -b --no-sign
+        sudo dpkg -i ../*.deb
+        cp ../*.deb "$WS/artifacts/"
 
-        git clone https://github.com/rscada/libmbus && cd libmbus
-        ./build-deb.sh && sudo dpkg -i ../*.deb && cp ../*.deb ${{github.workspace}}/artifacts/
-        cd ${{github.workspace}}
+        git clone https://github.com/rscada/libmbus "$WS/libmbus"
+        cd "$WS/libmbus"
+        ./build-deb.sh
+        sudo dpkg -i ../*.deb
+        cp ../*.deb "$WS/artifacts/"
 
-        cmake -B build -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-        cmake --build build --parallel
-        cmake --build build --target package
-        cp build/*.deb artifacts/
+        cmake -B "$WS/build" "$WS" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+        cmake --build "$WS/build" --parallel
+        cmake --build "$WS/build" --target package
+        cp "$WS/build/"*.deb "$WS/artifacts/"
 
-    # ── QEMU builds (arm32→trixie, arm6→trixie) ──────────────────────────────
-    - name: Build (QEMU)
+    # ── QEMU: arm64, arm32, arm6 (all Debian Trixie) ──────────────────────────
+    - name: Build inside QEMU container (${{ matrix.name }})
       if: matrix.qemu_arch != 'none'
       uses: uraimo/run-on-arch-action@v3
       with:
@@ -90,23 +102,34 @@ jobs:
           cd /workspace
           mkdir -p artifacts
 
-          git clone https://github.com/qt/qtmqtt && cd qtmqtt
+          git clone https://github.com/qt/qtmqtt
+          cd qtmqtt
           QT_VERSION="$(qmake6 --version 2>/dev/null | sed -n 's/.*version\s*\([0-9]*\.[0-9]*\.[0-9]*\)\s*.*/\1/p')"
-          git tag -l | grep -qE "^v${QT_VERSION}$" || QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
+          git tag -l | grep -qE "^v${QT_VERSION}$" || \
+            QT_VERSION=$(git tag -l | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" | sort -V | tail -n 1)
           git checkout "v${QT_VERSION}"
-          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr && cmake --build build --parallel && cmake --install build
+          cmake -B build -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --parallel
+          cmake --install build
           dh_make -s -c lgpl -e none@none.de --createorig -y 2>/dev/null || true
           dpkg-buildpackage -b --no-sign || true
           find /workspace -maxdepth 1 -name '*.deb' -exec cp {} /workspace/artifacts/ \;
           cd /workspace
 
-          git clone https://github.com/volkszaehler/libsml && cd libsml
-          sed -i 's/.*\s-C\stest$//g' Makefile && sed -i 's/.*\s-C\sexamples$//g' Makefile
-          dpkg-buildpackage -b --no-sign && dpkg -i ../*.deb && cp ../*.deb /workspace/artifacts/
+          git clone https://github.com/volkszaehler/libsml
+          cd libsml
+          sed -i 's/.*\s-C\stest$//g' Makefile
+          sed -i 's/.*\s-C\sexamples$//g' Makefile
+          dpkg-buildpackage -b --no-sign
+          dpkg -i ../*.deb
+          cp ../*.deb /workspace/artifacts/
           cd /workspace
 
-          git clone https://github.com/rscada/libmbus && cd libmbus
-          ./build-deb.sh && dpkg -i ../*.deb && cp ../*.deb /workspace/artifacts/
+          git clone https://github.com/rscada/libmbus
+          cd libmbus
+          ./build-deb.sh
+          dpkg -i ../*.deb
+          cp ../*.deb /workspace/artifacts/
           cd /workspace
 
           cmake -B build -DCMAKE_BUILD_TYPE=Release
