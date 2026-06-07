@@ -96,12 +96,13 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Build inside armv7 container
-      uses: uraimo/run-on-arch-action@v2
+      uses: uraimo/run-on-arch-action@v3
       with:
         arch: armv7
         distro: ubuntu24.04
         githubToken: ${{ github.token }}
-        dockerRunArgs: --volume "${{github.workspace}}:/workspace"
+        dockerRunArgs: |
+          --volume "${{github.workspace}}:/workspace"
         install: |
           apt update
           apt install -y git cmake build-essential \
