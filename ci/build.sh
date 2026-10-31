@@ -9,7 +9,7 @@ OUT="${1:-$(pwd)/dist}"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
 
-: "${QT_MQTT_TAG:=v6.8.2}"
+: "${QT_MQTT_TAG:=}"
 : "${LIBSML_REF:=dc096b40b0c0b90c7def374e92a9d186ed276c30}"
 : "${LIBMBUS_REF:=ac52f3f0aa9a73eb8bf0b9cc4464be117ebd20d6}"
 
@@ -60,6 +60,29 @@ cd "$work"
 ########################################
 # QtMqtt (not packaged by Debian/Raspbian)
 ########################################
+# qtmqtt links Qt::CorePrivate, so qt6-base-private-dev is mandatory. Debian
+# installs the headers under .../qt6/QtCore/<Qt version>/QtCore/private; if the
+# directory layout uses another version string, link it into place instead of
+# failing inside CMake with "non-existent path".
+qtver=$(qmake6 -query QT_VERSION)
+privroot="/usr/include/$(gcc -print-multiarch)/qt6/QtCore"
+if [ -z "${QT_MQTT_TAG}" ]; then
+    QT_MQTT_TAG="v${qtver}"
+fi
+if [ ! -d "$privroot/$qtver/QtCore/private" ]; then
+    echo "!! Qt private headers for ${qtver} not found in $privroot" >&2
+    ls -1 "$privroot" 2>/dev/null >&2 || true
+    actual=$(find "$privroot" -mindepth 1 -maxdepth 1 -type d -name '[0-9]*' 2>/dev/null | head -1)
+    if [ -n "$actual" ] && [ -d "$actual/QtCore/private" ]; then
+        ln -sfn "$actual" "$privroot/$qtver"
+        echo "   linked $actual -> $privroot/$qtver" >&2
+    else
+        echo "!! install qt6-base-private-dev (or check the qt6-base version)" >&2
+        exit 1
+    fi
+fi
+echo "== Qt ${qtver}, QtMqtt ${QT_MQTT_TAG}"
+
 git clone --quiet --depth 1 --branch "$QT_MQTT_TAG" https://github.com/qt/qtmqtt
 cmake -S qtmqtt -B qtmqtt/build \
       -DCMAKE_BUILD_TYPE=Release \

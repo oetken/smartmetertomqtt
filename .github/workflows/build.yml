@@ -12,7 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  QT_MQTT_TAG: v6.8.2
+  # QT_MQTT_TAG is derived from the distro Qt version in ci/build.sh;
+  # set it here only to force a specific tag.
   LIBSML_REF: dc096b40b0c0b90c7def374e92a9d186ed276c30
   LIBMBUS_REF: ac52f3f0aa9a73eb8bf0b9cc4464be117ebd20d6
 

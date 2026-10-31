@@ -66,7 +66,7 @@ mountpoint -q "$ROOTFS/work" || mount --bind "$GITHUB_WORKSPACE" "$ROOTFS/work"
 
 chroot "$ROOTFS" /usr/bin/env \
     GITHUB_WORKSPACE=/work \
-    QT_MQTT_TAG="${QT_MQTT_TAG:-v6.8.2}" \
+    QT_MQTT_TAG="${QT_MQTT_TAG:-}" \
     LIBSML_REF="${LIBSML_REF:-}" \
     LIBMBUS_REF="${LIBMBUS_REF:-}" \
     HOME=/root \
