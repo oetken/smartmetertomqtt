@@ -71,4 +71,11 @@ SET(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 SET(CPACK_PACKAGE_VERSION       ${PROJECT_VERSION})
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Enno") #required
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/package/postinst;${CMAKE_CURRENT_SOURCE_DIR}/package/preinst")
+
+# Let dpkg-shlibdeps compute the runtime dependencies (Qt6 modules, libsml1, libmbus1,
+# libqt6mqtt6, ...) instead of shipping a deb with no Depends at all.
+if(UNIX AND NOT APPLE)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+endif()
+
 INCLUDE(CPack)

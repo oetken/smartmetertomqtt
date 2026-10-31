@@ -1,0 +1,133 @@
+name: Build packages
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_MQTT_TAG: v6.8.2
+  LIBSML_REF: dc096b40b0c0b90c7def374e92a9d186ed276c30
+  LIBMBUS_REF: ac52f3f0aa9a73eb8bf0b9cc4464be117ebd20d6
+
+jobs:
+  # ---------------------------------------------------------------- amd64
+  amd64:
+    name: Build (amd64 / trixie)
+    runs-on: ubuntu-24.04
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        env:
+          GITHUB_WORKSPACE: ${{ github.workspace }}
+        run: bash ci/build.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-amd64
+          path: dist/*.deb
+          if-no-files-found: error
+
+  # ------------------------------------------------------- arm64 / armv7
+  arm:
+    name: Build (${{ matrix.arch }} / trixie)
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            platform: linux/arm64
+          - arch: armv7
+            platform: linux/arm/v7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: uraimo/run-on-arch-action@v3
+        with:
+          arch: none
+          distro: none
+          base_image: --platform=${{ matrix.platform }} debian:trixie
+          githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --volume "${PWD}:/work"
+          run: |
+            set -e
+            cd /work
+            GITHUB_WORKSPACE=/work \
+            QT_MQTT_TAG="${{ env.QT_MQTT_TAG }}" \
+            LIBSML_REF="${{ env.LIBSML_REF }}" \
+            LIBMBUS_REF="${{ env.LIBMBUS_REF }}" \
+              bash ci/build.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-${{ matrix.arch }}
+          path: dist/*.deb
+          if-no-files-found: error
+
+  # ----------------------------------------------------------------- armv6
+  # Debian has no ARMv6 port (debian:trixie offers arm/v5 and arm/v7 only), and
+  # the Pi Zero needs the Raspbian "+rpi1" userland. So: Raspbian chroot + QEMU.
+  armv6:
+    name: Build (armv6 / raspbian trixie)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached Raspbian rootfs
+        uses: actions/cache@v4
+        with:
+          path: /tmp/raspbian-trixie-armhf.tar.zst
+          key: raspbian-trixie-armhf-${{ hashFiles('ci/build.sh') }}
+
+      - name: Build in Raspbian trixie chroot
+        env:
+          ROOTFS_TARBALL: /tmp/raspbian-trixie-armhf.tar.zst
+        run: sudo -E bash ci/build-armv6.sh dist
+
+      - name: Verify ARMv6
+        run: |
+          deb=$(ls dist/smartmetertomqtt_*.deb | head -1)
+          dpkg-deb -x "$deb" /tmp/verify
+          file /tmp/verify/usr/bin/SmartMeterToMqtt
+          readelf -A /tmp/verify/usr/bin/SmartMeterToMqtt | grep -E "Tag_CPU_arch" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debs-armv6
+          path: |
+            dist/*.deb
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  # --------------------------------------------------------------- release
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [amd64, arm, armv6]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Collect packages
+        run: |
+          set -e
+          mkdir -p release
+          find dist -name '*.deb' -exec cp {} release/ \;
+          cd release
+          sha256sum ./*.deb > SHA256SUMS
+          ls -l
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.deb
+            release/SHA256SUMS
+          generate_release_notes: true
