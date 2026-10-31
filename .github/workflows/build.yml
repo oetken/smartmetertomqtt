@@ -93,10 +93,17 @@ jobs:
 
       - name: Verify ARMv6
         run: |
-          deb=$(ls dist/smartmetertomqtt_*.deb | head -1)
+          set -e
+          deb=$(ls dist/*.deb | grep -i smartmetertomqtt | head -1)
+          echo "package: $deb"
           dpkg-deb -x "$deb" /tmp/verify
           file /tmp/verify/usr/bin/SmartMeterToMqtt
-          readelf -A /tmp/verify/usr/bin/SmartMeterToMqtt | grep -E "Tag_CPU_arch" || true
+          readelf -A /tmp/verify/usr/bin/SmartMeterToMqtt | grep -E "Tag_CPU_arch|Tag_ABI_VFP_args"
+          # hard requirement: the Pi Zero is ARMv6
+          if readelf -A /tmp/verify/usr/bin/SmartMeterToMqtt | grep -q "Tag_CPU_arch: v7"; then
+            echo "::error::binary was built for ARMv7, not ARMv6"
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:

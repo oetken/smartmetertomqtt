@@ -174,7 +174,7 @@ void MessageSourceSml::handleReadReady()
                             vs << "Unkown type: " << Qt::hex << Qt::showbase << entry->value->type;
                             value.setValue(str);
                       }
-                      if (value.type() == QVariant::Type::Double){ 
+                      if (value.typeId() == QMetaType::Double){
                         double val = value.value<double>();
                         double scaler = (entry->scaler) ? *entry->scaler : 1;
                         scaler = (scaler==-1) ? 0.0001 : scaler;
