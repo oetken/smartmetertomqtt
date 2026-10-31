@@ -9,7 +9,14 @@
 #   libsml1_*.deb  libmbus1_*.deb  libqt6mqtt6_*.deb  smartmetertomqtt_*.deb
 set -Eeuo pipefail
 
-DEB_DIR="${1:?usage: provision.sh <deb-dir> [config.json]}"
+NO_START=0
+args=()
+for a in "$@"; do
+    if [[ "$a" == "--no-start" ]]; then NO_START=1; else args+=("$a"); fi
+done
+set -- "${args[@]}"
+
+DEB_DIR="${1:?usage: provision.sh [--no-start] <deb-dir> [config.json]}"
 CONF="${2:-}"
 CONFIG=/etc/smartmeter.json
 
@@ -82,13 +89,18 @@ print(' '.join(s.get('device','') for s in cfg.get('MessageSources',[])))
     [[ -e "$dev" ]] && echo "   ok      $dev" || echo "   MISSING $dev"
 done
 
-echo "== enable + start"
-systemctl enable smartmeter
-systemctl start smartmeter
-sleep 5
-systemctl --no-pager --full status smartmeter | head -12
-echo
-journalctl -u smartmeter -n 15 --no-pager
+if [[ $NO_START -eq 1 ]]; then
+    echo "== --no-start: service left stopped and disabled"
+    echo "   start later with: sudo systemctl enable --now smartmeter"
+else
+    echo "== enable + start"
+    systemctl enable smartmeter
+    systemctl start smartmeter
+    sleep 5
+    systemctl --no-pager --full status smartmeter | head -12
+    echo
+    journalctl -u smartmeter -n 15 --no-pager
+fi
 
 cat <<EOF
 
