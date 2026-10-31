@@ -26,8 +26,9 @@ if ! apt-get update -qq; then
 fi
 apt-get install -y -qq --no-install-recommends \
     git cmake build-essential dpkg-dev devscripts debhelper dh-make dh-exec \
-    uuid-dev libudev-dev pkg-config pandoc \
-    qt6-base-dev qt6-tools-dev qt6-serialport-dev
+    autoconf automake libtool fakeroot pkg-config pandoc \
+    uuid-dev libudev-dev \
+    qt6-base-dev qt6-base-private-dev qt6-tools-dev qt6-serialport-dev
 
 work=$(mktemp -d)
 cd "$work"
