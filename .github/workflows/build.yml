@@ -83,7 +83,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/raspbian-trixie-armhf.tar.zst
-          key: raspbian-trixie-armhf-${{ hashFiles('ci/build.sh') }}
+          key: raspbian-trixie-armhf-${{ hashFiles('ci/build.sh', 'ci/build-armv6.sh') }}
 
       - name: Build in Raspbian trixie chroot
         env:

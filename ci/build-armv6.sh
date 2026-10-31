@@ -31,6 +31,7 @@ else
         --components=main,contrib,non-free,rpi \
         "$SUITE" "$ROOTFS" "$MIRROR"
     cp /usr/bin/qemu-arm-static "$ROOTFS/usr/bin/"
+
     chroot "$ROOTFS" /debootstrap/debootstrap --second-stage
 
     cat > "$ROOTFS/etc/apt/sources.list" <<EOF
@@ -46,6 +47,12 @@ EOF
 fi
 
 cp /usr/bin/qemu-arm-static "$ROOTFS/usr/bin/"
+
+# archive.raspberrypi.org is signed by the Raspberry Pi key, which is not part of a
+# debootstrap'd Raspbian rootfs. Without it apt aborts with "Missing key CF8A1AF5...".
+install -d "$ROOTFS/etc/apt/trusted.gpg.d"
+curl -fsSL https://archive.raspberrypi.org/debian/raspberrypi.gpg.key \
+    | gpg --dearmor > "$ROOTFS/etc/apt/trusted.gpg.d/raspberrypi-archive-keyring.gpg"
 
 # bind mounts for a usable chroot
 for m in proc sys dev; do

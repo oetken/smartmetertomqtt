@@ -17,7 +17,13 @@ export DEBIAN_FRONTEND=noninteractive
 
 echo "== arch: $(dpkg --print-architecture)  QtMqtt: $QT_MQTT_TAG"
 
-apt-get update -qq
+# The Raspberry Pi archive key is only present when ci/build-armv6.sh injected it.
+# Fall back to a trusted source entry rather than failing the whole build.
+if ! apt-get update -qq; then
+    echo "!! apt update failed, retrying with archive.raspberrypi.org trusted=yes" >&2
+    sed -i 's|^deb http://archive.raspberrypi.org/debian/|deb [trusted=yes] http://archive.raspberrypi.org/debian/|' /etc/apt/sources.list
+    apt-get update -qq
+fi
 apt-get install -y -qq --no-install-recommends \
     git cmake build-essential dpkg-dev devscripts debhelper dh-make dh-exec \
     uuid-dev libudev-dev pkg-config pandoc \
