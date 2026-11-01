@@ -29,10 +29,12 @@ class MessageSourceSml : public IMessageSource
     Q_OBJECT
 public:
     MessageSourceSml(QString topicBase, QString device, uint32_t baudrate,
-                     QString deviceName = QString(), QString deviceId = QString());
+                     QString deviceName = QString(), QString deviceId = QString(),
+                     bool obisTopics = false);
     virtual ~MessageSourceSml(void);
     int32_t setup();
 private:
+    bool m_obisTopics = false;
     void disconnectUart();
     bool connectUart(bool retry = false);
 

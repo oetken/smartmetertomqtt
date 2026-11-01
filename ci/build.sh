@@ -103,6 +103,7 @@ Version: ${ver}-1
 Section: libs
 Priority: optional
 Architecture: ${arch}
+Depends: libc6, libqt6core6t64 | libqt6core6, libqt6network6 | libqt6network6t64
 Maintainer: SmartMeterToMqtt build <none@none.de>
 Description: Qt 6 MQTT library (built from upstream ${QT_MQTT_TAG})
 EOF

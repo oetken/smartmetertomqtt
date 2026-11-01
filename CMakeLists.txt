@@ -18,7 +18,7 @@
 cmake_policy(SET CMP0071 NEW)
 cmake_policy(SET CMP0011 NEW)
 CMAKE_MINIMUM_REQUIRED (VERSION 3.13)
-PROJECT(SmartMeterToMqtt VERSION 1.1.0)
+PROJECT(SmartMeterToMqtt VERSION 1.1.1)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -74,6 +74,8 @@ SET(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 SET(CPACK_PACKAGE_VERSION       ${PROJECT_VERSION})
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Enno") #required
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/package/postinst;${CMAKE_CURRENT_SOURCE_DIR}/package/preinst")
+# dpkg-shlibdeps cannot map our self-built QtMqtt to a package, so declare it explicitly.
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6mqtt6")
 
 # Let dpkg-shlibdeps compute the runtime dependencies (Qt6 modules, libsml1, libmbus1,
 # libqt6mqtt6, ...) instead of shipping a deb with no Depends at all.

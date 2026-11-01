@@ -33,9 +33,10 @@
 #endif
 
 MessageSourceSml::MessageSourceSml(QString topicBase, QString device, uint32_t baudrate,
-                                   QString deviceName, QString deviceId)
+                                   QString deviceName, QString deviceId, bool obisTopics)
     : topicBase_(topicBase), device_(device), baudrate_(baudrate), connected_(false), dataWatchdog_(QTimer())
 {
+    m_obisTopics = obisTopics;
     m_sourceType = "Sml";
     m_deviceName = deviceName.isEmpty() ? topicBase : deviceName;
     m_deviceId   = deviceId.isEmpty()   ? topicBase : deviceId;
@@ -182,6 +183,10 @@ void MessageSourceSml::handleReadReady()
                       }
                       QString name = obis.toString();
                       QString code = obis.toObisString();
+                      // 0.1.x published raw OBIS codes as MQTT topics; keep that available
+                      // for installations whose Home Assistant sensors rely on them.
+                      if (m_obisTopics)
+                          name = code;
                       if(m_filters.contains(name) || m_filters.contains(code))
                       {
                         auto filters = m_filters.values(code) + m_filters.values(name);

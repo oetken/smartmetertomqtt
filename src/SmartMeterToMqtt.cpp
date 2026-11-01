@@ -112,6 +112,7 @@ bool SmartMeterToMqtt::getMessageSources()
         }
         auto deviceName = messageSource[QLatin1String("deviceName")];
         auto deviceId   = messageSource[QLatin1String("deviceId")];
+        auto obisTopics = messageSource[QLatin1String("obisTopics")].toBool(false);
 
         if(type.toString() == "MbusSerial")
         {
@@ -141,7 +142,8 @@ bool SmartMeterToMqtt::getMessageSources()
         else if(type == "Sml")
         {
             auto ms = new MessageSourceSml(topic.toString(), device.toString(), baudrate.toInt(),
-                                           deviceName.toString(), deviceId.toString());
+                                           deviceName.toString(), deviceId.toString(),
+                                           obisTopics);
             rc = ms->setup();
             addMessageSource(ms);
             iMessageSource = ms;
