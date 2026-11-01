@@ -177,9 +177,13 @@ void MessageSourceSml::handleReadReady()
                       }
                       if (value.typeId() == QMetaType::Double){
                         double val = value.value<double>();
-                        double scaler = (entry->scaler) ? *entry->scaler : 1;
-                        scaler = (scaler==-1) ? 0.0001 : scaler;
-                        value.setValue<double>(val * scaler);
+                        // 0.1.x behaviour: only the -1 marker is applied (1e-4); any other
+                        // scaler (including 0, used e.g. for 1-0:16.7.0*255) is ignored.
+                        // Multiplying by the raw scaler turned active power into 0 W.
+                        int scaler = (entry->scaler) ? *entry->scaler : 1;
+                        if (scaler == -1)
+                            val *= 0.0001;
+                        value.setValue<double>(val);
                       }
                       QString name = obis.toString();
                       QString code = obis.toObisString();
