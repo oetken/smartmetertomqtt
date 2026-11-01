@@ -183,7 +183,7 @@ void MessageSourceSml::handleReadReady()
                         int scaler = (entry->scaler) ? *entry->scaler : 1;
                         if (scaler == -1)
                             val *= 0.0001;
-                        value.setValue<double>(val);
+                        value.setValue(val);
                       }
                       QString name = obis.toString();
                       QString code = obis.toObisString();
