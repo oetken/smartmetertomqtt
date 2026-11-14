@@ -63,7 +63,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "MessageSourceMbusSerial.hpp"
 #include <QDebug>
 #include <QtXml>
+#include <QMutex>
+#include <QMutexLocker>
+#include <QHash>
+#include <QThread>
 #include "mbus/mbus.h"
+
+// One M-Bus serial bus per device path: several message sources (water, gas) may
+// share the same adapter. Sharing one libmbus context avoids two file descriptors
+// fighting over the same tty, which produced "Failed to receive M-Bus response
+// frame" and, worse, a use-after-free in the old error path (SIGSEGV).
+static QMutex g_mbusBusMutex;
+static QHash<QString, mbus_handle *> g_mbusBuses;
 
 MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec,
                                                  QString deviceName, QString deviceId)
@@ -78,47 +89,56 @@ MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, 
 }
 
 int32_t MessageSourceMbusSerial::setup(bool debug) {
-    const char *device;
-    long baudrate = m_baudrate;
-
-
-    auto deviceStdString = new std::string(m_device.toStdString());
-    device = deviceStdString->c_str();
     m_debug = debug;
 
-    if ((m_handle = mbus_context_serial(device)) == NULL) {
-        qCritical() << "Could not initialize M-Bus context: " << mbus_error_str();
+    QMutexLocker lock(&g_mbusBusMutex);
+    if (mbus_handle *shared = g_mbusBuses.value(m_device, nullptr)) {
+        m_handle = shared;
+        return 0;
+    }
+
+    auto deviceStdString = new std::string(m_device.toStdString());
+    const char *device = deviceStdString->c_str();
+
+    mbus_handle *handle = mbus_context_serial(device);
+    if (handle == nullptr) {
+        qCritical() << "Could not initialize M-Bus context:" << mbus_error_str();
         return 1;
     }
 
     if (m_debug) {
-        mbus_register_send_event(m_handle, &mbus_dump_send_event);
-        mbus_register_recv_event(m_handle, &mbus_dump_recv_event);
+        mbus_register_send_event(handle, &mbus_dump_send_event);
+        mbus_register_recv_event(handle, &mbus_dump_recv_event);
     }
 
-    if (mbus_connect(m_handle) == -1) {
+    if (mbus_connect(handle) == -1) {
         qCritical() << "Failed to setup connection to M-bus gateway";
-        mbus_context_free(m_handle);
-        m_handle = nullptr;
+        mbus_context_free(handle);
         return 1;
     }
 
-    if (mbus_serial_set_baudrate(m_handle, baudrate) == -1) {
+    if (mbus_serial_set_baudrate(handle, m_baudrate) == -1) {
         qCritical() << "Failed to set baud rate.";
-        mbus_disconnect(m_handle);
-        mbus_context_free(m_handle);
+        mbus_disconnect(handle);
+        mbus_context_free(handle);
         return 1;
     }
 
-    if (init_slaves(m_handle) == 0) {
-        mbus_disconnect(m_handle);
-        mbus_context_free(m_handle);
+    if (init_slaves(handle) == 0) {
+        mbus_disconnect(handle);
+        mbus_context_free(handle);
         return 1;
     }
+
+    g_mbusBuses.insert(m_device, handle);
+    m_handle = handle;
     return 0;
-};
+}
 
 int32_t MessageSourceMbusSerial::poll() {
+    if (!m_handle)
+        return 1;
+    QMutexLocker lock(&g_mbusBusMutex);
     int address;
     char *xml_result;
     mbus_frame reply;
@@ -164,15 +184,21 @@ int32_t MessageSourceMbusSerial::poll() {
 
         if (mbus_send_request_frame(m_handle, address) == -1)
         {
-            qCritical() << "Failed to send M-Bus request frame.";
-            mbus_disconnect(m_handle);
-            mbus_context_free(m_handle);
+            qCritical() << "M-Bus" << m_topic << "address" << address << "- failed to send request frame:" << mbus_error_str();
             continue;
         }
 
-        if (mbus_recv_frame(m_handle, &reply) != MBUS_RECV_RESULT_OK)
+        int recv = mbus_recv_frame(m_handle, &reply);
+        if (recv != MBUS_RECV_RESULT_OK)
         {
-            qCritical() << "Failed to receive M-Bus response frame.";
+            // one retry - slow meters occasionally miss the first request
+            QThread::msleep(300);
+            if (mbus_send_request_frame(m_handle, address) != -1)
+                recv = mbus_recv_frame(m_handle, &reply);
+        }
+        if (recv != MBUS_RECV_RESULT_OK)
+        {
+            qCritical() << "M-Bus" << m_topic << "address" << address << "- no response frame";
             continue;
         }
 
@@ -350,10 +376,8 @@ void MessageSourceMbusSerial::readData() {
 }
 
 MessageSourceMbusSerial::~MessageSourceMbusSerial() {
-    if(m_handle) {
-        mbus_disconnect(m_handle);
-        mbus_context_free(m_handle);
-    }
+    // The libmbus context is shared between all sources on the same serial device
+    // and stays open for the lifetime of the process.
 }
 
 
