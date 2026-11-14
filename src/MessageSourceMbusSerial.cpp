@@ -67,6 +67,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <QMutexLocker>
 #include <QHash>
 #include <QThread>
+#include <QDateTime>
 #include "mbus/mbus.h"
 
 // One M-Bus serial bus per device path: several message sources (water, gas) may
@@ -75,6 +76,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // frame" and, worse, a use-after-free in the old error path (SIGSEGV).
 static QMutex g_mbusBusMutex;
 static QHash<QString, mbus_handle *> g_mbusBuses;
+// M-Bus meters need a quiet gap between two transactions; without it, a request
+// to the second meter right after the first one is silently ignored.
+static qint64 g_lastBusUseMs = 0;
+static constexpr qint64 kBusGapMs = 700;
 
 MessageSourceMbusSerial::MessageSourceMbusSerial(QString topic, QString device, QStringList addresses, uint32_t baudrate, uint32_t pollIntervalSec,
                                                  QString deviceName, QString deviceId)
@@ -148,6 +153,13 @@ int32_t MessageSourceMbusSerial::poll() {
 
     for(auto & addressQString : m_addresses)
     {
+        // enforce the inter-transaction gap on the shared bus
+        if (g_lastBusUseMs) {
+            qint64 since = QDateTime::currentMSecsSinceEpoch() - g_lastBusUseMs;
+            if (since < kBusGapMs)
+                QThread::msleep(kBusGapMs - since);
+        }
+
         auto addr_sstr = addressQString.toStdString();
         auto addr_str = addr_sstr.c_str();
         if (mbus_is_secondary_address(addr_str))
@@ -185,6 +197,7 @@ int32_t MessageSourceMbusSerial::poll() {
         if (mbus_send_request_frame(m_handle, address) == -1)
         {
             qCritical() << "M-Bus" << m_topic << "address" << address << "- failed to send request frame:" << mbus_error_str();
+            g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
             continue;
         }
 
@@ -199,6 +212,7 @@ int32_t MessageSourceMbusSerial::poll() {
         if (recv != MBUS_RECV_RESULT_OK)
         {
             qCritical() << "M-Bus" << m_topic << "address" << address << "- no response frame";
+            g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
             continue;
         }
 
@@ -229,6 +243,7 @@ int32_t MessageSourceMbusSerial::poll() {
         }
         handleXmlData(xml_result);
         free(xml_result);
+        g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
 
         // manual free
         if (reply_data.data_var.record)
