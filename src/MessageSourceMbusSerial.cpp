@@ -194,26 +194,38 @@ int32_t MessageSourceMbusSerial::poll() {
             address = atoi(addr_str);
         }
 
-        if (mbus_send_request_frame(m_handle, address) == -1)
-        {
-            qCritical() << "M-Bus" << m_topic << "address" << address << "- failed to send request frame:" << mbus_error_str();
+        // A weak/slow meter answers only a fraction of requests, so retry a few
+        // times before giving up. Errors are only logged once it is persistent.
+        bool got_response = false;
+        for (int attempt = 1; attempt <= 4 && !got_response; attempt++) {
+            if (attempt > 1)
+                QThread::msleep(400);
+            if (g_lastBusUseMs) {
+                qint64 since = QDateTime::currentMSecsSinceEpoch() - g_lastBusUseMs;
+                if (since < kBusGapMs)
+                    QThread::msleep(kBusGapMs - since);
+            }
+            if (mbus_send_request_frame(m_handle, address) == -1) {
+                g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
+                continue;
+            }
+            int recv = mbus_recv_frame(m_handle, &reply);
             g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
-            continue;
+            if (recv == MBUS_RECV_RESULT_OK)
+                got_response = true;
         }
 
-        int recv = mbus_recv_frame(m_handle, &reply);
-        if (recv != MBUS_RECV_RESULT_OK)
-        {
-            // one retry - slow meters occasionally miss the first request
-            QThread::msleep(300);
-            if (mbus_send_request_frame(m_handle, address) != -1)
-                recv = mbus_recv_frame(m_handle, &reply);
-        }
-        if (recv != MBUS_RECV_RESULT_OK)
-        {
-            qCritical() << "M-Bus" << m_topic << "address" << address << "- no response frame";
-            g_lastBusUseMs = QDateTime::currentMSecsSinceEpoch();
+        if (!got_response) {
+            m_consecutiveFailures++;
+            if (m_consecutiveFailures == 3 || m_consecutiveFailures % 20 == 0)
+                qWarning() << "M-Bus" << m_topic << "address" << address
+                           << "- no response (" << m_consecutiveFailures << " polls in a row)";
             continue;
+        }
+        if (m_consecutiveFailures > 0) {
+            qInfo() << "M-Bus" << m_topic << "address" << address
+                    << "- responding again after" << m_consecutiveFailures << "failed polls";
+            m_consecutiveFailures = 0;
         }
 
         //

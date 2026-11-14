@@ -43,6 +43,7 @@ private:
     bool m_debug;
     mbus_handle *m_handle = nullptr;
     QString m_topic;
+    int m_consecutiveFailures = 0;
 };
 
 
